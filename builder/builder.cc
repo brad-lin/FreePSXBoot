@@ -11,6 +11,8 @@
 
 static void banner() {
     printf("FreePSXBoot memory card builder\n");
+    printf("Exploit created by brad-lin\n");
+    printf("Builder created by Nicolas \"Pixel\" Noble\n");
     printf("https://github.com/brad-lin/FreePSXBoot\n\n");
 }
 
