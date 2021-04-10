@@ -1,0 +1,34 @@
+# Visual Studio files
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+Debug/
+Release/
+ReleaseWithTracy/
+Enabled/
+Disabled/
+
+.vs/
+
+ipch/
+*.aps
+*.ncb
+*.opendb
+*.opensdf
+*.sdf
+*.cachefile
+*.VC.db
+*.VC.VC.opendb
+
+.Trash-1000/
+
+# Linux files
+*.o
+*.dep
+
+# macos files
+.DS_store
