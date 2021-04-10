@@ -192,6 +192,11 @@ int main(int argc, char** argv) {
     memcpy(out.data() + 17 * 128, payloadPtr, tsize);
 
     uint32_t payload[] = {
+        // disabling all interrupts except for memory card
+        Mips::Encoder::addiu(Mips::Encoder::Reg::V0, Mips::Encoder::Reg::R0, 128),
+        Mips::Encoder::lui(Mips::Encoder::Reg::V1, 0x1f00),
+        Mips::Encoder::sw(Mips::Encoder::Reg::V0, 0x1074, Mips::Encoder::Reg::V1),
+
         // restoring old vector
         Mips::Encoder::addiu(Mips::Encoder::Reg::V0, Mips::Encoder::Reg::R0, oldAddr),
         Mips::Encoder::sw(Mips::Encoder::Reg::V0, vector, Mips::Encoder::Reg::R0),
