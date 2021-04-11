@@ -16,17 +16,17 @@ There are different downloads for different console versions. Please download th
 | Model     | BIOS Version | Standard Download Link | Reduced Download Link |
 |-----------|--------------|------------------------|-----------------------|
 | SCPH-1000 | 1.0          | WIP | WIP |
-| SCPH-1001 | 2.2          | WIP | WIP |
-| SCPH-1002 | 2.0/2.1/2.2  | WIP | WIP |
+| SCPH-1001 | 2.2          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
+| SCPH-1002 | 2.0/2.1/2.2  | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-3000 | 1.1          | WIP | WIP |
-| SCPH-3500 | 2.1          | WIP | WIP |
+| SCPH-3500 | 2.1          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5001 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5500 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5501 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5502 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5503 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-5552 | 3.0          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5903 | 2.2          | WIP | WIP |
+| SCPH-5903 | 2.2          | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-7000 | 4.0          | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
 | SCPH-7000W | 4.1         | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
 | SCPH-7001 | 4.1          | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
@@ -40,6 +40,9 @@ There are different downloads for different console versions. Please download th
 | SCPH-9001 | 4.1          | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
 | SCPH-9002 | 4.1          | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
 | SCPH-9003 | 4.1          | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
+| SCPH-100  | 4.3          | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
+| SCPH-101  | 4.5          | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
+| SCPH-102  | 4.4/4.5      | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 
