@@ -5,9 +5,59 @@
 #include <array>
 #include <string>
 #include <vector>
+#include <unordered_map>
 
 #include "encoder.hh"
 #include "flags.h"
+
+struct ExploitSettings {
+    uint32_t stackBase;
+    uint32_t addressToModify;
+    uint32_t originalValue;
+    uint32_t newValue;
+
+    constexpr static uint32_t maxFileSizeToUse = 0x7fffc000;
+    constexpr static uint32_t maxIncrementPerSlot = 0x1ffff;
+
+    uint16_t index() const noexcept {
+        return static_cast<uint16_t>((addressToModify - stackBase) / 4);
+    }
+
+    uint32_t difference() const noexcept {
+        return newValue - originalValue;
+    }
+
+    int nbSlotsNeeded() const noexcept {
+        // Each slot allows to increment at most by 0x1ffff.
+        const uint32_t diff = difference();
+        int result = (diff / maxIncrementPerSlot);
+        result += (diff % maxIncrementPerSlot) == 0 ? 0 : 1;
+        return result;
+    }
+
+    uint32_t fileSizeToUseForLastSlot() const noexcept {
+        return (difference() % maxIncrementPerSlot) * 0x4000;
+    }
+
+    bool valid() const noexcept {
+        // Index must be <= 0xfffe.
+        if ((addressToModify - stackBase) / 4 > 0xfffe) {
+            return false;
+        }
+        // 15 slots are usable to increment the value.
+        else if (nbSlotsNeeded() > 15) {
+            return false;
+        } else {
+            return true;
+        }
+    }
+};
+
+// Maps BIOS version (e.g. 9002) to its exploits settings.
+static std::unordered_map<uint32_t, ExploitSettings> biosExploitSettings = {
+    // Overwrite "jal set_card_auto_format", called right after buInit
+    {9002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}}
+};
 
 static void banner() {
     printf("FreePSXBoot memory card builder\n");
@@ -18,14 +68,24 @@ static void banner() {
 
 static void usage() {
     printf(
-        "Usage: builder -base 0x801ffcd0 -vector 0x09b4 -old 0x4d3c -new 0xbe48 -in payload.bin -out card.mcd -tload "
+        "This program can build a memory card using known exploit values for supported BIOS versions,\n"
+        "or build an experimental memory card which gives full control of the value modified by the exploit.\n"
+        "If you just want to run something on a PlayStation with a supported BIOS version,\n"
+        "use -bios with the corresponding option.\n"
+        "If you know what you are doing and want to experiment, use the advanced options.\n");
+    printf(
+        "Usage:\n"
+        "\tTo run a payload (standard usage) :\n"
+        "\t\tbuilder -bios 9002 -in payload.bin -out card.mcd -tload 0x801b0000\n"
+        "\tTo experiment (advanced usage; these example values work on 7000+ BIOS versions):\n"
+        "\t\tbuilder -base 0x801ffcd0 -vector 0x802009b4 -old 0x4d3c -new 0xbe48 -in payload.bin -out card.mcd -tload "
         "0x801b0000\n");
-    printf("       builder -base 0x801ffcd0 -vector 0x09b4 -old 0x4d3c -new 0xbe48 -in payload.ps-exe -out card.mcd\n");
     printf("\n");
+    printf("-bios     the BIOS version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, old, and new.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
-    printf("-vector   the address of the function pointer we want to modify\n");
-    printf("-old      the previous value of the function pointer\n");
-    printf("-new      the value of the function pointer we want to set\n");
+    printf("-vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value at address 0x09b4.\n");
+    printf("-old      the original value to modify\n");
+    printf("-new      the new value we want to set\n");
     printf("-in       the payload file; if it is a ps-exe, tload is optional\n");
     printf("-out      the output filename to create\n");
     printf("-tload    if 'in' is a binary payload, use this address to load and jump to\n");
@@ -61,6 +121,7 @@ int main(int argc, char** argv) {
 
     const flags::args args(argc, argv);
 
+    auto biosVersionStr = args.get<std::string>("bios");
     auto baseStr = args.get<std::string>("base");
     auto vectorStr = args.get<std::string>("vector");
     auto oldAddrStr = args.get<std::string>("old");
@@ -69,12 +130,26 @@ int main(int argc, char** argv) {
     auto outName = args.get<std::string>("out");
     auto tloadStr = args.get<std::string>("tload");
 
-    if (!baseStr.has_value() || !vectorStr.has_value() || !oldAddrStr.has_value() || !newAddrStr.has_value() ||
-        !inName.has_value() || !outName.has_value()) {
+    const bool biosVersionPresent = biosVersionStr.has_value();
+    const bool anyExpertArgPresent = baseStr.has_value() || vectorStr.has_value() || oldAddrStr.has_value() || newAddrStr.has_value();
+    const bool allExpertArgsPresent = baseStr.has_value() && vectorStr.has_value() && oldAddrStr.has_value() && newAddrStr.has_value();
+    // Check in and out presence
+    if (!inName.has_value() || !outName.has_value()) {
+        usage();
+        return -1;
+    }
+    // Check that none or all expert args are present
+    if (anyExpertArgPresent && !allExpertArgsPresent) {
+        usage();
+        return -1;
+    }
+    // Check that bios version xor expert args are used
+    if (biosVersionPresent && anyExpertArgPresent) {
         usage();
         return -1;
     }
 
+    uint32_t biosVersion;
     uint32_t base;
     uint32_t vector;
     uint32_t oldAddr;
@@ -83,14 +158,19 @@ int main(int argc, char** argv) {
 
     const char* argname = nullptr;
     try {
-        argname = "base";
-        base = std::stoul(baseStr.value(), nullptr, 0);
-        argname = "vector";
-        vector = std::stoul(vectorStr.value(), nullptr, 0);
-        argname = "oldAddr";
-        oldAddr = std::stoul(oldAddrStr.value(), nullptr, 0);
-        argname = "newAddr";
-        newAddr = std::stoul(newAddrStr.value(), nullptr, 0);
+        if (biosVersionPresent) {
+            argname = "bios";
+            biosVersion = std::stoul(biosVersionStr.value(), nullptr, 0);
+        } else {
+            argname = "base";
+            base = std::stoul(baseStr.value(), nullptr, 0);
+            argname = "vector";
+            vector = std::stoul(vectorStr.value(), nullptr, 0);
+            argname = "oldAddr";
+            oldAddr = std::stoul(oldAddrStr.value(), nullptr, 0);
+            argname = "newAddr";
+            newAddr = std::stoul(newAddrStr.value(), nullptr, 0);
+        }
         if (tloadStr.has_value()) {
             argname = "tload";
             tload = std::stoul(tloadStr.value(), nullptr, 0);
@@ -100,47 +180,71 @@ int main(int argc, char** argv) {
         return -1;
     }
 
+    struct ExploitSettings exploitSettings;
+    if (biosVersionPresent) {
+        auto it = biosExploitSettings.find(biosVersion);
+        if (it == biosExploitSettings.end()) {
+            printf("Unsupported BIOS version %u\n", biosVersion);
+            return -1;
+        }
+        exploitSettings = it->second;
+    } else {
+        exploitSettings.stackBase = base;
+        exploitSettings.addressToModify = vector;
+        exploitSettings.originalValue = oldAddr;
+        exploitSettings.newValue = newAddr;
+    }
+
+    if (!exploitSettings.valid()) {
+        printf("Exploit settings are not valid; either too many slots are needed, or the address to modify is out of range.\n");
+        return -1;
+    }
+
     static std::array<uint8_t, 128 * 1024> out;
     memset(out.data(), 0, out.size());
     out[0x0000] = 'M';
     out[0x0001] = 'C';
     out[0x007f] = 0x0e;
-    out[0x0080] = 0x51;
 
-    uint32_t increment = (newAddr - oldAddr) * 0x4000;
-    out[0x0084] = increment & 0xff;
-    increment >>= 8;
-    out[0x0085] = increment & 0xff;
-    increment >>= 8;
-    out[0x0086] = increment & 0xff;
-    increment >>= 8;
-    out[0x0087] = increment & 0xff;
+    // Write directory entries (as many as needed)
+    for (int i = 0; i < exploitSettings.nbSlotsNeeded(); i++) {
+        const int offset = (i + 1) * 0x80;
+        const bool last = i == exploitSettings.nbSlotsNeeded() - 1;
+        uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
+        // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
+        // If it fails, change to 0xA1.
+        out[offset] = 0x51;
 
-    vector &= 0x001fffff;
-    vector |= 0x00200000;
-    base &= 0x001fffff;
+        out[offset + 4] = fileSize & 0xff;
+        fileSize >>= 8;
+        out[offset + 5] = fileSize & 0xff;
+        fileSize >>= 8;
+        out[offset + 6] = fileSize & 0xff;
+        fileSize >>= 8;
+        out[offset + 7] = fileSize & 0xff;
 
-    uint32_t index = (vector - base) >> 2;
-    out[0x0088] = index & 0xff;
-    index >>= 8;
-    out[0x0089] = index & 0xff;
-    out[0x008a] = 'F';
-    out[0x008b] = 'r';
-    out[0x008c] = 'e';
-    out[0x008d] = 'e';
-    out[0x008e] = 'P';
-    out[0x008f] = 'S';
-    out[0x0090] = 'X';
-    out[0x0091] = 'B';
-    out[0x0092] = 'o';
-    out[0x0093] = 'o';
-    out[0x0094] = 't';
+        uint32_t index = exploitSettings.index();
+        out[offset + 8] = index & 0xff;
+        index >>= 8;
+        out[offset + 9] = index & 0xff;
+        out[offset + 0xa] = 'F';
+        out[offset + 0xb] = 'r';
+        out[offset + 0xc] = 'e';
+        out[offset + 0xd] = 'e';
+        out[offset + 0xe] = 'P';
+        out[offset + 0xf] = 'S';
+        out[offset + 0x10] = 'X';
+        out[offset + 0x11] = 'B';
+        out[offset + 0x12] = 'o';
+        out[offset + 0x13] = 'o';
+        out[offset + 0x14] = 't';
 
-    uint8_t crc = 0;
-    for (unsigned i = 0; i < 0x80; i++) {
-        crc ^= out[0x0080 + i];
+        uint8_t crc = 0;
+        for (unsigned i = 0; i < 0x80; i++) {
+            crc ^= out[offset + i];
+        }
+        out[offset + 0x7f] = crc;
     }
-    out[0x00ff] = crc;
 
     FILE* inFile = fopen(inName.value().c_str(), "rb");
     if (!inFile) {
@@ -191,6 +295,7 @@ int main(int argc, char** argv) {
     }
     memcpy(out.data() + 17 * 128, payloadPtr, tsize);
 
+    //TODO: option to keep stack pointer as is, so that the shell can resume its execution.
     uint32_t payload[] = {
         // disabling all interrupts except for memory card
         Mips::Encoder::addiu(Mips::Encoder::Reg::V0, Mips::Encoder::Reg::R0, 128),
@@ -243,6 +348,7 @@ int main(int argc, char** argv) {
         Mips::Encoder::addiu(Mips::Encoder::Reg::SP, Mips::Encoder::Reg::SP, getLO(sp)),
     };
     static_assert(sizeof(payload) < 128, "Payload too big");
+    //TODO: ensure that checksum of payload sector is wrong (if it is good, the BIOS will erase it with data from the next sector).
     unsigned o = 0;
     for (auto p : payload) {
         out[0x800 + o++] = p & 0xff;
