@@ -3,6 +3,7 @@
 #include <stdio.h>
 
 #include <array>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -49,12 +50,36 @@ struct ExploitSettings {
     }
 };
 
-// Maps BIOS version (e.g. 9002) to its exploits settings.
-static std::unordered_map<uint32_t, ExploitSettings> biosExploitSettings = {
+// A BIOS is identifiend by its version number and date.
+// For example, version 4.1 (1997-12-16).
+// This is used as a key with the format: 0x41, 0x19971216.
+typedef std::pair<uint32_t, uint32_t> BIOSKey;
+
+static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
+    // Overwrite allow_new_card function pointer
+    {{0x30, 0x19961118}, {0x801ffcc8, 0x802009b4, 0x4d3c, 0xbe48}},
+    {{0x30, 0x19970106}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
     // Overwrite "jal set_card_auto_format", called right after buInit
-    {7002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
-    {7502, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
-    {9002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+    {{0x41, 0x19971216}, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+};
+
+// Maps model version (e.g. 9002) to its BIOS version.
+static std::unordered_map<uint32_t, BIOSKey> modelToBios {
+    {5001, {0x30, 0x19961118}},
+    {5501, {0x30, 0x19961118}},
+    {5502, {0x30, 0x19970106}},
+    {5503, {0x30, 0x19961118}},
+    {5552, {0x30, 0x19970106}},
+    {7001, {0x41, 0x19971216}},
+    {7002, {0x41, 0x19971216}},
+    {7003, {0x30, 0x19961118}},
+    {7500, {0x41, 0x19971216}},
+    {7501, {0x41, 0x19971216}},
+    {7502, {0x41, 0x19971216}},
+    {7503, {0x41, 0x19971216}},
+    {9001, {0x41, 0x19971216}},
+    {9002, {0x41, 0x19971216}},
+    {9003, {0x41, 0x19971216}},
 };
 
 static void banner() {
@@ -66,21 +91,23 @@ static void banner() {
 
 static void usage() {
     printf(
-        "This program can build a memory card using known exploit values for supported BIOS versions,\n"
+        "This program can build a memory card using known exploit values for supported model versions,\n"
         "or build an experimental memory card which gives full control of the value modified by the exploit.\n"
-        "If you just want to run something on a PlayStation with a supported BIOS version,\n"
-        "use -bios with the corresponding option.\n"
+        "If you just want to run something on a PlayStation with a supported model version,\n"
+        "use -model with the corresponding option.\n"
         "If you know what you are doing and want to experiment, use the advanced options.\n");
     printf(
         "Usage:\n"
-        "\tTo run a payload (standard usage) :\n"
-        "\t\tbuilder -bios 9002 -in payload.bin -out card.mcd -tload 0x801b0000\n"
-        "\tTo experiment (advanced usage; these example values work on 7000+ BIOS versions):\n"
+        "\tTo run a PS-EXE payload (standard usage):\n"
+        "\t\tbuilder -model 9002 -in payload.exe -out card.mcd\n"
+        "\tTo run a raw payload (advanced usage):\n"
+        "\t\tbuilder -model 9002 -in payload.bin -out card.mcd -tload 0x801b0000\n"
+        "\tTo experiment (expert usage; these example values work on most 7000+ model versions):\n"
         "\t\tbuilder -base 0x801ffcd0 -vector 0x802009b4 -old 0x4d3c -new 0xbe48 -in payload.bin -out card.mcd -tload "
         "0x801b0000\n");
     printf("\n");
     printf(
-        "-bios     the BIOS version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, "
+        "-model    the model version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, "
         "old, and new.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
@@ -128,7 +155,7 @@ int main(int argc, char** argv) {
 
     const flags::args args(argc, argv);
 
-    auto biosVersionStr = args.get<std::string>("bios");
+    auto modelVersionStr = args.get<std::string>("model");
     auto baseStr = args.get<std::string>("base");
     auto vectorStr = args.get<std::string>("vector");
     auto oldAddrStr = args.get<std::string>("old");
@@ -137,7 +164,7 @@ int main(int argc, char** argv) {
     auto outName = args.get<std::string>("out");
     auto tloadStr = args.get<std::string>("tload");
 
-    const bool biosVersionPresent = biosVersionStr.has_value();
+    const bool modelVersionPresent = modelVersionStr.has_value();
     const bool anyExpertArgPresent =
         baseStr.has_value() || vectorStr.has_value() || oldAddrStr.has_value() || newAddrStr.has_value();
     const bool allExpertArgsPresent =
@@ -152,13 +179,13 @@ int main(int argc, char** argv) {
         usage();
         return -1;
     }
-    // Check that bios version xor expert args are used
-    if (biosVersionPresent && anyExpertArgPresent) {
+    // Check that model version xor expert args are used
+    if (modelVersionPresent && anyExpertArgPresent) {
         usage();
         return -1;
     }
 
-    uint32_t biosVersion;
+    uint32_t modelVersion;
     uint32_t base;
     uint32_t vector;
     uint32_t oldAddr;
@@ -167,9 +194,9 @@ int main(int argc, char** argv) {
 
     const char* argname = nullptr;
     try {
-        if (biosVersionPresent) {
-            argname = "bios";
-            biosVersion = std::stoul(biosVersionStr.value(), nullptr, 0);
+        if (modelVersionPresent) {
+            argname = "model";
+            modelVersion = std::stoul(modelVersionStr.value(), nullptr, 0);
         } else {
             argname = "base";
             base = std::stoul(baseStr.value(), nullptr, 0);
@@ -190,13 +217,17 @@ int main(int argc, char** argv) {
     }
 
     struct ExploitSettings exploitSettings;
-    if (biosVersionPresent) {
-        auto it = biosExploitSettings.find(biosVersion);
-        if (it == biosExploitSettings.end()) {
-            printf("Unsupported BIOS version %u\n", biosVersion);
+    if (modelVersionPresent) {
+        auto it = modelToBios.find(modelVersion);
+        if (it == modelToBios.end()) {
+            printf("Unsupported model %u. Supported models are:\n", modelVersion);
+            for (const auto& it : modelToBios) {
+                printf("%u ", it.first);
+            }
+            printf("\n");
             return -1;
         }
-        exploitSettings = it->second;
+        exploitSettings = biosExploitSettings.at(it->second);
     } else {
         exploitSettings.stackBase = base;
         exploitSettings.addressToModify = vector;
