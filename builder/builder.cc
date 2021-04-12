@@ -326,23 +326,22 @@ int main(int argc, char** argv) {
         sw(Reg::V0, exploitSettings.addressToModify, Reg::R0),
     };
 
+    unsigned lastLoadAddress = tload + 128 * (frames - 1);
     std::vector<uint32_t> loadBinary = {
-        // S0 = number of frames to load
+        // S0 = current frame
         addiu(Reg::S0, Reg::R0, frames),
-        // S1 = destination address
-        lui(Reg::S1, getHI(tload)),
-        addiu(Reg::S1, Reg::S1, getLO(tload)),
-        // S2 = frame counter (set to 0)
-        addiu(Reg::S2, Reg::R0, 0),
+        // S1 = destination address of current frame
+        lui(Reg::S1, getHI(lastLoadAddress)),
+        addiu(Reg::S1, Reg::S1, getLO(lastLoadAddress)),
         // read_loop:
+        // decrement frame counter
+        addi(Reg::S0, Reg::S0, -1),
         // A0 = deviceID (0)
         addiu(Reg::A0, Reg::R0, 0),
         // A1 = frame counter + firstUsableFrame
-        addiu(Reg::A1, Reg::S2, firstUsableFrame),
+        addiu(Reg::A1, Reg::S0, firstUsableFrame),
         // A2 = current destination address pointer
         addiu(Reg::A2, Reg::S1, 0),
-        // increment frame counter
-        addiu(Reg::S2, Reg::S2, 1),
         // mcReadSector(0, frame, dest)
         jal(0xb0),
         addiu(Reg::T1, Reg::R0, 0x4f),
@@ -350,10 +349,10 @@ int main(int argc, char** argv) {
         addiu(Reg::A0, Reg::R0, 0),
         jal(0xb0),
         addiu(Reg::T1, Reg::R0, 0x5d),
-        // if we still haven't reached our frame counter, go back 40 bytes (aka read_loop)
-        bne(Reg::S0, Reg::S2, -40),
-        // increment destination pointer by sizeof(frame) in the delay slot
-        addiu(Reg::S1, Reg::S1, 128),
+        // if frame counter is not zero, go back 40 bytes (aka read_loop)
+        bne(Reg::S0, Reg::R0, -40),
+        // decrement destination pointer by sizeof(frame) in the delay slot
+        addi(Reg::S1, Reg::S1, -128),
     };
 
     std::vector<uint32_t> setGP = {
@@ -384,7 +383,7 @@ int main(int argc, char** argv) {
         addiu(Reg::SP, Reg::SP, getLO(sp)),
 
         // flush cache
-        jal(0xa0),
+        j(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
     };
 
@@ -396,7 +395,8 @@ int main(int argc, char** argv) {
     if (args.get<bool>("return", false)) append(saveRegisters);
     append(restoreVector);
     append(loadBinary);
-    if (args.get<bool>("nogp", false)) append(setGP);
+    // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
+    if (!args.get<bool>("nogp", gp == 0)) append(setGP);
 
     if (args.get<bool>("return", false)) {
         append(bootstrapReturn);
