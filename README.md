@@ -33,33 +33,33 @@ As more reliable versions of the exploit are developed, the images are updated.
 | Model     | BIOS Version | 100% reliable exploit? | Standard Download Link | Reduced Download Link |
 |-----------|--------------|------------------------|------------------------|-----------------------|
 | SCPH-1000 | 1.0          | N/A | WIP | WIP |
-| SCPH-1001 | 2.2          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-1002 | 2.0/2.1/2.2  | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
+| SCPH-1001 | 2.2          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-1002 | 2.0/2.1/2.2  | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
 | SCPH-3000 | 1.1          | N/A | WIP | WIP |
-| SCPH-3500 | 2.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5001 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5500 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5501 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5502 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5503 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5552 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-5903 | 2.2          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-7000 | 4.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7000W | 4.1         | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7001 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7002 | 4.1          | **Yes** | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7003 | 3.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
-| SCPH-7500 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7501 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7502 | 4.1          | **Yes** | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-7503 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-9000 | 4.0          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-9001 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-9002 | 4.1          | **Yes** | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-9003 | 4.1          | No | [Standard](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios4.x.mcd) |
-| SCPH-100  | 4.3          | No | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
-| SCPH-101  | 4.5          | No | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
-| SCPH-102  | 4.4/4.5      | No | [Standard](exploit/freepsxboot-unirom-standard-psone.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-psone.mcd) |
+| SCPH-3500 | 2.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5001 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5500 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5501 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5502 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5503 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5552 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-5903 | 2.2          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-7000 | 4.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7000W | 4.1         | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7001 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7002 | 4.1          | **Yes** | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7003 | 3.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios3.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios3.x.mcd) |
+| SCPH-7500 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7501 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7502 | 4.1          | **Yes** | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-7503 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-9000 | 4.0          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-9001 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-9002 | 4.1          | **Yes** | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-9003 | 4.1          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-bios4.x.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-bios4.x.mcd) |
+| SCPH-100  | 4.3          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-psone.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-psone.mcd) |
+| SCPH-101  | 4.5          | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-psone.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-psone.mcd) |
+| SCPH-102  | 4.4/4.5      | No | [Standard](exploit/BathroomCleanerUltraPro-unirom-standard-psone.mcd) | [Reduced](exploit/BathroomCleanerUltraPro-unirom-reduced-psone.mcd) |
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 

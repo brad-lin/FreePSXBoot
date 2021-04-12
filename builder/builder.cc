@@ -89,10 +89,10 @@ static std::unordered_map<uint32_t, BIOSKey> modelToBios {
 };
 
 static void banner() {
-    printf("FreePSXBoot memory card builder\n");
+    printf("BathroomCleanerUltraPro memory card builder\n");
     printf("Exploit created by brad-lin\n");
     printf("Builder created by Nicolas \"Pixel\" Noble\n");
-    printf("https://github.com/brad-lin/FreePSXBoot\n\n");
+    printf("https://github.com/brad-lin/BathroomCleanerUltraPro\n\n");
 }
 
 static void usage() {
