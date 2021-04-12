@@ -1,4 +1,4 @@
-# FreePSXBoot
+# BathroomCleanerUltraPro
 Exploit allowing to load arbitrary code on the PSX (i.e. PlayStation 1) using only a memory card (no game needed).
 
 To use it, you will need a way to copy **full memory card images** (not individual files) to a memory card. Some possibilities are:
