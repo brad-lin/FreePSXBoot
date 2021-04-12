@@ -395,7 +395,8 @@ int main(int argc, char** argv) {
     if (args.get<bool>("return", false)) append(saveRegisters);
     append(restoreVector);
     append(loadBinary);
-    if (args.get<bool>("nogp", false)) append(setGP);
+    // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
+    if (!args.get<bool>("nogp", gp == 0)) append(setGP);
 
     if (args.get<bool>("return", false)) {
         append(bootstrapReturn);
