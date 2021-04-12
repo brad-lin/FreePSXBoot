@@ -52,6 +52,8 @@ struct ExploitSettings {
 // Maps BIOS version (e.g. 9002) to its exploits settings.
 static std::unordered_map<uint32_t, ExploitSettings> biosExploitSettings = {
     // Overwrite "jal set_card_auto_format", called right after buInit
+    {7002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+    {7502, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
     {9002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
 };
 
@@ -90,6 +92,7 @@ static void usage() {
     printf("-out      the output filename to create\n");
     printf("-tload    if 'in' is a binary payload, use this address to load and jump to\n");
     printf("-return   make a payload that allows returning to the shell\n");
+    printf("-norestore do not restore the value overwritten by the exploit\n");
     printf("-noint    disable interrupts during payload\n");
     printf("-nogp     disable setting $gp during payloads\n");
     printf("-deleted  use deleted fake entries\n");
@@ -313,26 +316,26 @@ int main(int argc, char** argv) {
     };
 
     std::vector<uint32_t> saveRegisters = {
-        addiu(Reg::SP, Reg::SP, -16),
+        addiu(Reg::SP, Reg::SP, -8),
         sw(Reg::RA, 0, Reg::SP),
         sw(Reg::S0, 4, Reg::SP),
-        sw(Reg::S1, 8, Reg::SP),
-        sw(Reg::S2, 12, Reg::SP),
     };
 
-    std::vector<uint32_t> restoreVector = {
-        // restoring old vector
-        addiu(Reg::V0, Reg::R0, exploitSettings.originalValue),
-        sw(Reg::V0, exploitSettings.addressToModify, Reg::R0),
+    std::vector<uint32_t> restoreValue = {
+        // restoring old value
+        lui(Reg::V0, getHI(exploitSettings.originalValue)),
+        addiu(Reg::V0, Reg::V0, getLO(exploitSettings.originalValue)),
+        lui(Reg::V1, getHI(exploitSettings.addressToModify)),
+        sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
     };
 
     unsigned lastLoadAddress = tload + 128 * (frames - 1);
     std::vector<uint32_t> loadBinary = {
         // S0 = current frame
         addiu(Reg::S0, Reg::R0, frames),
-        // S1 = destination address of current frame
-        lui(Reg::S1, getHI(lastLoadAddress)),
-        addiu(Reg::S1, Reg::S1, getLO(lastLoadAddress)),
+        // K1 = destination address of current frame
+        lui(Reg::K1, getHI(lastLoadAddress)),
+        addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
         // read_loop:
         // decrement frame counter
         addi(Reg::S0, Reg::S0, -1),
@@ -341,7 +344,7 @@ int main(int argc, char** argv) {
         // A1 = frame counter + firstUsableFrame
         addiu(Reg::A1, Reg::S0, firstUsableFrame),
         // A2 = current destination address pointer
-        addiu(Reg::A2, Reg::S1, 0),
+        addiu(Reg::A2, Reg::K1, 0),
         // mcReadSector(0, frame, dest)
         jal(0xb0),
         addiu(Reg::T1, Reg::R0, 0x4f),
@@ -352,7 +355,7 @@ int main(int argc, char** argv) {
         // if frame counter is not zero, go back 40 bytes (aka read_loop)
         bne(Reg::S0, Reg::R0, -40),
         // decrement destination pointer by sizeof(frame) in the delay slot
-        addi(Reg::S1, Reg::S1, -128),
+        addi(Reg::K1, Reg::K1, -128),
     };
 
     std::vector<uint32_t> setGP = {
@@ -369,10 +372,8 @@ int main(int argc, char** argv) {
         addiu(Reg::V0, Reg::V0, getLO(pc)),
         lw(Reg::RA, 0, Reg::SP),
         lw(Reg::S0, 4, Reg::SP),
-        lw(Reg::S1, 8, Reg::SP),
-        lw(Reg::S2, 12, Reg::SP),
         jr(Reg::V0),
-        addiu(Reg::SP, Reg::SP, 16),
+        addiu(Reg::SP, Reg::SP, 8),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
@@ -391,14 +392,16 @@ int main(int argc, char** argv) {
     auto append = [&payload](std::vector<uint32_t>& block) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
+    const bool returnToShell = args.get<bool>("return", false);
     if (args.get<bool>("noint", false)) append(disableInterrupts);
-    if (args.get<bool>("return", false)) append(saveRegisters);
-    append(restoreVector);
+    if (returnToShell) append(saveRegisters);
+    if (!args.get<bool>("norestore", false)) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
-    if (!args.get<bool>("nogp", gp == 0)) append(setGP);
+    const bool doSetGP = gp != 0 && !args.get<bool>("nogp", false);
+    if (doSetGP) append(setGP);
 
-    if (args.get<bool>("return", false)) {
+    if (returnToShell) {
         append(bootstrapReturn);
     } else {
         append(bootstrapNoReturn);
@@ -407,8 +410,24 @@ int main(int argc, char** argv) {
         printf("Payload is too big, using %i instructions out of 32.\n", (int)payload.size());
         return -1;
     }
-    // TODO: ensure that checksum of payload sector is wrong (if it is good, the BIOS will erase it with data from the
-    // next sector).
+    // Compute payload checksum
+    uint8_t crc = 0;
+    int crcIndex = 0;
+    size_t payloadSize = payload.size() * sizeof(decltype(payload)::value_type);
+    const uint8_t* payloadBytes = reinterpret_cast<const uint8_t*>(payload.data());
+    while (crcIndex < payloadSize && crcIndex < 127) {
+        crc ^= payloadBytes[crcIndex];
+        crcIndex++;
+    }
+    // If payload has 128 bytes, check that the checksum is bad
+    if (payloadSize == 128 && crc == payloadBytes[127]) {
+        printf("Payload is 128 bytes and its checksum is not bad.\n");
+        return -1;
+    }
+    // Otherwise, make the checksum bad.
+    if (crc == 0) {
+        out[0x87f] = 0xCD;
+    }
     unsigned o = 0;
     for (auto p : payload) {
         out[0x800 + o++] = p & 0xff;
