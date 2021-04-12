@@ -52,6 +52,8 @@ struct ExploitSettings {
 // Maps BIOS version (e.g. 9002) to its exploits settings.
 static std::unordered_map<uint32_t, ExploitSettings> biosExploitSettings = {
     // Overwrite "jal set_card_auto_format", called right after buInit
+    {7002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+    {7502, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
     {9002, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
 };
 
@@ -90,6 +92,7 @@ static void usage() {
     printf("-out      the output filename to create\n");
     printf("-tload    if 'in' is a binary payload, use this address to load and jump to\n");
     printf("-return   make a payload that allows returning to the shell\n");
+    printf("-norestore do not restore the value overwritten by the exploit\n");
     printf("-noint    disable interrupts during payload\n");
     printf("-nogp     disable setting $gp during payloads\n");
     printf("-deleted  use deleted fake entries\n");
@@ -313,25 +316,26 @@ int main(int argc, char** argv) {
     };
 
     std::vector<uint32_t> saveRegisters = {
-        addiu(Reg::SP, Reg::SP, -12),
+        addiu(Reg::SP, Reg::SP, -8),
         sw(Reg::RA, 0, Reg::SP),
         sw(Reg::S0, 4, Reg::SP),
-        sw(Reg::S1, 8, Reg::SP),
     };
 
-    std::vector<uint32_t> restoreVector = {
-        // restoring old vector
-        addiu(Reg::V0, Reg::R0, exploitSettings.originalValue),
-        sw(Reg::V0, exploitSettings.addressToModify, Reg::R0),
+    std::vector<uint32_t> restoreValue = {
+        // restoring old value
+        lui(Reg::V0, getHI(exploitSettings.originalValue)),
+        addiu(Reg::V0, Reg::V0, getLO(exploitSettings.originalValue)),
+        lui(Reg::V1, getHI(exploitSettings.addressToModify)),
+        sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
     };
 
     unsigned lastLoadAddress = tload + 128 * (frames - 1);
     std::vector<uint32_t> loadBinary = {
         // S0 = current frame
         addiu(Reg::S0, Reg::R0, frames),
-        // S1 = destination address of current frame
-        lui(Reg::S1, getHI(lastLoadAddress)),
-        addiu(Reg::S1, Reg::S1, getLO(lastLoadAddress)),
+        // K1 = destination address of current frame
+        lui(Reg::K1, getHI(lastLoadAddress)),
+        addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
         // read_loop:
         // decrement frame counter
         addi(Reg::S0, Reg::S0, -1),
@@ -340,7 +344,7 @@ int main(int argc, char** argv) {
         // A1 = frame counter + firstUsableFrame
         addiu(Reg::A1, Reg::S0, firstUsableFrame),
         // A2 = current destination address pointer
-        addiu(Reg::A2, Reg::S1, 0),
+        addiu(Reg::A2, Reg::K1, 0),
         // mcReadSector(0, frame, dest)
         jal(0xb0),
         addiu(Reg::T1, Reg::R0, 0x4f),
@@ -351,7 +355,7 @@ int main(int argc, char** argv) {
         // if frame counter is not zero, go back 40 bytes (aka read_loop)
         bne(Reg::S0, Reg::R0, -40),
         // decrement destination pointer by sizeof(frame) in the delay slot
-        addi(Reg::S1, Reg::S1, -128),
+        addi(Reg::K1, Reg::K1, -128),
     };
 
     std::vector<uint32_t> setGP = {
@@ -368,9 +372,8 @@ int main(int argc, char** argv) {
         addiu(Reg::V0, Reg::V0, getLO(pc)),
         lw(Reg::RA, 0, Reg::SP),
         lw(Reg::S0, 4, Reg::SP),
-        lw(Reg::S1, 8, Reg::SP),
         jr(Reg::V0),
-        addiu(Reg::SP, Reg::SP, 12),
+        addiu(Reg::SP, Reg::SP, 8),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
@@ -392,10 +395,11 @@ int main(int argc, char** argv) {
     const bool returnToShell = args.get<bool>("return", false);
     if (args.get<bool>("noint", false)) append(disableInterrupts);
     if (returnToShell) append(saveRegisters);
-    append(restoreVector);
+    if (!args.get<bool>("norestore", false)) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
-    if (!args.get<bool>("nogp", gp == 0)) append(setGP);
+    const bool doSetGP = gp != 0 && !args.get<bool>("nogp", false);
+    if (doSetGP) append(setGP);
 
     if (returnToShell) {
         append(bootstrapReturn);
