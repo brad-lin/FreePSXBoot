@@ -313,11 +313,10 @@ int main(int argc, char** argv) {
     };
 
     std::vector<uint32_t> saveRegisters = {
-        addiu(Reg::SP, Reg::SP, -16),
+        addiu(Reg::SP, Reg::SP, -12),
         sw(Reg::RA, 0, Reg::SP),
         sw(Reg::S0, 4, Reg::SP),
         sw(Reg::S1, 8, Reg::SP),
-        sw(Reg::S2, 12, Reg::SP),
     };
 
     std::vector<uint32_t> restoreVector = {
@@ -370,9 +369,8 @@ int main(int argc, char** argv) {
         lw(Reg::RA, 0, Reg::SP),
         lw(Reg::S0, 4, Reg::SP),
         lw(Reg::S1, 8, Reg::SP),
-        lw(Reg::S2, 12, Reg::SP),
         jr(Reg::V0),
-        addiu(Reg::SP, Reg::SP, 16),
+        addiu(Reg::SP, Reg::SP, 12),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
@@ -391,14 +389,15 @@ int main(int argc, char** argv) {
     auto append = [&payload](std::vector<uint32_t>& block) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
+    const bool returnToShell = args.get<bool>("return", false);
     if (args.get<bool>("noint", false)) append(disableInterrupts);
-    if (args.get<bool>("return", false)) append(saveRegisters);
+    if (returnToShell) append(saveRegisters);
     append(restoreVector);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
     if (!args.get<bool>("nogp", gp == 0)) append(setGP);
 
-    if (args.get<bool>("return", false)) {
+    if (returnToShell) {
         append(bootstrapReturn);
     } else {
         append(bootstrapNoReturn);
@@ -407,8 +406,24 @@ int main(int argc, char** argv) {
         printf("Payload is too big, using %i instructions out of 32.\n", (int)payload.size());
         return -1;
     }
-    // TODO: ensure that checksum of payload sector is wrong (if it is good, the BIOS will erase it with data from the
-    // next sector).
+    // Compute payload checksum
+    uint8_t crc = 0;
+    int crcIndex = 0;
+    size_t payloadSize = payload.size() * sizeof(decltype(payload)::value_type);
+    const uint8_t* payloadBytes = reinterpret_cast<const uint8_t*>(payload.data());
+    while (crcIndex < payloadSize && crcIndex < 127) {
+        crc ^= payloadBytes[crcIndex];
+        crcIndex++;
+    }
+    // If payload has 128 bytes, check that the checksum is bad
+    if (payloadSize == 128 && crc == payloadBytes[127]) {
+        printf("Payload is 128 bytes and its checksum is not bad.\n");
+        return -1;
+    }
+    // Otherwise, make the checksum bad.
+    if (crc == 0) {
+        out[0x87f] = 0xCD;
+    }
     unsigned o = 0;
     for (auto p : payload) {
         out[0x800 + o++] = p & 0xff;
