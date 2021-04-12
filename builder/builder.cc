@@ -61,6 +61,8 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
     {{0x30, 0x19970106}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
     // Overwrite "jal set_card_auto_format", called right after buInit
     {{0x41, 0x19971216}, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+    {{0x44, 0x20000324}, {0x801ffcc0, 0x80232520, 0x0c01a370, 0x0c082f92}},
+    {{0x45, 0x20000525}, {0x801ffcc0, 0x80232530, 0x0c01a374, 0x0c082f92}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
@@ -80,6 +82,8 @@ static std::unordered_map<uint32_t, BIOSKey> modelToBios {
     {9001, {0x41, 0x19971216}},
     {9002, {0x41, 0x19971216}},
     {9003, {0x41, 0x19971216}},
+    { 101, {0x45, 0x20000525}},
+    // 102 can be either 4.4 or 4.5
 };
 
 static void banner() {
@@ -110,7 +114,7 @@ static void usage() {
         "-model    the model version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, "
         "old, and new.\n");
     printf(
-        "-bios     the BIOS version, as X.Y (e.g. 4.4). If you use this option, don't use base ,vector, old, and "
+        "-bios     the BIOS version, as X.Y (e.g. 4.4). If you use this option, don't use base, vector, old, and "
         "new.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
