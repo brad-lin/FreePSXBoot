@@ -253,9 +253,10 @@ int main(int argc, char** argv) {
             }
         }
         if (!found) {
-            printf("Unsupported BIOS %02x. Supported BIOS are:\n", biosVersion);
+            printf("Unsupported BIOS %x.%x. Supported BIOS are:\n", biosVersion >> 4, biosVersion & 0xF);
             for (const auto& it : biosExploitSettings) {
-                printf("%02x ", it.first.first);
+                const auto& curVersion = it.first.first;
+                printf("%x.%x ", curVersion >> 4, curVersion & 0xF);
             }
             printf("\n");
             return -1;
