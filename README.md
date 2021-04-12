@@ -7,6 +7,17 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * Memcarduino. Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
 
+# WARNING AND DISCLAIMER
+**By flashing FreePSXBoot to your Memory Card, you are risking the following downsides:**
+
+* Your Memory Card will be **ENTIRELY WIPED** after flashing a .mcd image, so **creating a backup of your saves is compulsory**.
+* Because the exploit is made a **corrupt save data on purpose** for it to run, your card will become **extremely unstable**. That is, you **won't be able to use this card for saving and loading game saves** and **it will cause severe crashes on your PS1 and even on your PS2 console** *(if you have any)*.
+
+* If you only have one PS1 memory card, flashed a .mcd image to it and it doesn't work, you only have a couple of options: either **find a memory card formatting program for PC or PS1 (you could run it on a PS2 too, unless you have a model that doesn't support reading and writing 3rd party cards that use 7.6v [(which can be solved by soldering a wire between the 3rd pin of the 2nd memory card port and a power source, like the DC port's middle pin, that can output enough voltage to be able to enable read and write functionality for said cards] ) that can handle wiping the unstable card,** or **purchase a new memory card** (you might as well want to buy more than one if planning to use game saves).
+* If you only have one PS1 memory card, and haven't still flashed an .mcd image to it, we recommend you to **STOP** and use another exploit like *tonyhax* **(https://github.com/socram8888/tonyhax)** to run PS1 backups and imports **without crippling the memory card's functionality.**
+
+* We are **not** responsible for any damage to your memory card. If **you** proceed to install this exploit, then **you** are acknowledging the aforementioned risks and won't scold us for your mishap.
+
 # Usage
 
 * Copy the full memory card image corresponding to your model/BIOS to a memory card.
@@ -15,7 +26,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * After a few seconds, the screen will flash orange. Wait ~30 seconds for the [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) welcome screen to appear.
 * If the screen doesn't flash orange after 20 seconds, you have either used a wrong memory card image, or your model uses an exploit which is not 100% reliable. In that case, power off your PlayStation, wait for 1 minute, and try again.
 * Once Unirom is loaded, you can insert a CD, close the lid, and press **R1** to load the game.
-* Don't forget to remove your memory card, as its exploit will trigger into games as well. The card is effectively unusable for normal operations, and you would need to use a different memory card. This isn't an issue when using the Memcard Pro, as it will automatically change the virtual card to the game you're booting.
+* Don't forget to remove your memory card, as its exploit will trigger into games as well. This isn't an issue when using the Memcard Pro, as it will automatically change the virtual card to the game you're booting.
 
 # Supported models
 
