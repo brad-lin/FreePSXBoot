@@ -1,4 +1,4 @@
-This program can build a memory card using known exploit values for supported model versions, or build an experimental memory card which gives full control of the value modified by the exploit. If you just want to run something on a PlayStation with a supported model version, use -model with the corresponding value (e.g. -model 9002). If you know what you are doing and want to experiment, use the advanced options.
+This program can build a memory card using known exploit values for supported model versions, or build an experimental memory card which gives full control of the value modified by the exploit. If you just want to run something on a PlayStation with a supported model or BIOS version, use -model or -bios with the corresponding value (e.g. -model 9002 or -bios 4.4). If you know what you are doing and want to experiment, use the advanced options.
 
 Its usage as follow:
 
@@ -12,6 +12,7 @@ Usage:
                 builder -base 0x801ffcd0 -vector 0x802009b4 -old 0x4d3c -new 0xbe48 -in payload.bin -out card.mcd -tload 0x801b0000
 
 -model    the model version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, old, and new.
+-bios     the BIOS version, as X.Y (e.g. 4.4). If you use this option, don't use base ,vector, old, and new.
 -base     the base address of the stack array being exploited from buInit
 -vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value at address 0x09b4.
 -old      the original value to modify
