@@ -312,8 +312,12 @@ int main(int argc, char** argv) {
         sw(Reg::V0, 0x1074, Reg::V1),
     };
 
-    std::vector<uint32_t> saveRA = {
-        addiu(Reg::S3, Reg::RA, 0),
+    std::vector<uint32_t> saveRegisters = {
+        addiu(Reg::SP, Reg::SP, -16),
+        sw(Reg::RA, 0, Reg::SP),
+        sw(Reg::S0, 4, Reg::SP),
+        sw(Reg::S1, 8, Reg::SP),
+        sw(Reg::S2, 12, Reg::SP),
     };
 
     std::vector<uint32_t> restoreVector = {
@@ -362,11 +366,12 @@ int main(int argc, char** argv) {
         jal(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
 
-        // bootstrap
-        lui(Reg::V0, getHI(pc)),
-        addiu(Reg::V0, Reg::V0, getLO(pc)),
+        lw(Reg::RA, 0, Reg::SP),
+        lw(Reg::S0, 4, Reg::SP),
+        lw(Reg::S1, 8, Reg::SP),
+        lw(Reg::S2, 12, Reg::SP),
         jr(Reg::V0),
-        addiu(Reg::RA, Reg::S3, 0),
+        addiu(Reg::SP, Reg::SP, 16),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
@@ -386,7 +391,7 @@ int main(int argc, char** argv) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
     if (args.get<bool>("noint", false)) append(disableInterrupts);
-    if (args.get<bool>("return", false)) append(saveRA);
+    if (args.get<bool>("return", false)) append(saveRegisters);
     append(restoreVector);
     append(loadBinary);
     if (args.get<bool>("nogp", false)) append(setGP);
@@ -396,7 +401,7 @@ int main(int argc, char** argv) {
     } else {
         append(bootstrapNoReturn);
     }
-    if (payload.size() >= 32) {
+    if (payload.size() > 32) {
         printf("Payload is too big, using %i instructions out of 32.\n", (int)payload.size());
         return -1;
     }
