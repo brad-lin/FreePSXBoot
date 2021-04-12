@@ -366,6 +366,8 @@ int main(int argc, char** argv) {
         jal(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
 
+        lui(Reg::V0, getHI(pc)),
+        addiu(Reg::V0, Reg::V0, getLO(pc)),
         lw(Reg::RA, 0, Reg::SP),
         lw(Reg::S0, 4, Reg::SP),
         lw(Reg::S1, 8, Reg::SP),
