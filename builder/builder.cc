@@ -94,7 +94,7 @@ static void usage() {
         "This program can build a memory card using known exploit values for supported model versions,\n"
         "or build an experimental memory card which gives full control of the value modified by the exploit.\n"
         "If you just want to run something on a PlayStation with a supported model version,\n"
-        "use -model with the corresponding option.\n"
+        "use -model with the corresponding value (e.g. -model 9002).\n"
         "If you know what you are doing and want to experiment, use the advanced options.\n");
     printf(
         "Usage:\n"
