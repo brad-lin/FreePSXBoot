@@ -384,7 +384,7 @@ int main(int argc, char** argv) {
         addiu(Reg::SP, Reg::SP, getLO(sp)),
 
         // flush cache
-        jal(0xa0),
+        j(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
     };
 
