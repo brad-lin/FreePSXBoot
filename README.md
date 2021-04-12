@@ -31,7 +31,7 @@ There are different downloads for different console versions. Please download th
 As more reliable versions of the exploit are developed, the images are updated.
 
 | Model     | BIOS Version | 100% reliable exploit? | Standard Download Link | Reduced Download Link |
-|-----------|--------------|------------------------|-----------------------|
+|-----------|--------------|------------------------|------------------------|-----------------------|
 | SCPH-1000 | 1.0          | N/A | WIP | WIP |
 | SCPH-1001 | 2.2          | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
 | SCPH-1002 | 2.0/2.1/2.2  | No | [Standard](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | [Reduced](exploit/freepsxboot-unirom-reduced-bios3.x.mcd) |
