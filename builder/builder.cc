@@ -13,6 +13,8 @@
 
 using namespace Mips::Encoder;
 
+constexpr uint32_t loaderAddr = 0xbe48;
+
 struct ExploitSettings {
     uint32_t stackBase;
     uint32_t addressToModify;
@@ -129,6 +131,7 @@ static void usage() {
     printf("-norestore do not restore the value overwritten by the exploit\n");
     printf("-noint    disable interrupts during payload\n");
     printf("-nogp     disable setting $gp during payloads\n");
+    printf("-bw       load binary backwards (start with last frame; saves 1 payload instruction)\n");
     printf("-deleted  use deleted fake entries\n");
 }
 
@@ -362,6 +365,7 @@ int main(int argc, char** argv) {
     }
 
     constexpr unsigned firstUsableFrame = 64;
+    const bool backwards = args.get<bool>("bw", false);
 
     if (sp == 0) sp = 0x801ffff0;
     unsigned frames = (tsize + 127) >> 7;
@@ -380,9 +384,7 @@ int main(int argc, char** argv) {
     };
 
     std::vector<uint32_t> saveRegisters = {
-        addiu(Reg::SP, Reg::SP, -8),
-        sw(Reg::RA, 0, Reg::SP),
-        sw(Reg::S0, 4, Reg::SP),
+        addiu(Reg::S8, Reg::RA, 0),
     };
 
     std::vector<uint32_t> restoreValue = {
@@ -394,33 +396,65 @@ int main(int argc, char** argv) {
     };
 
     unsigned lastLoadAddress = tload + 128 * (frames - 1);
-    std::vector<uint32_t> loadBinary = {
-        // S0 = current frame
-        addiu(Reg::S0, Reg::R0, frames),
-        // K1 = destination address of current frame
-        lui(Reg::K1, getHI(lastLoadAddress)),
-        addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
-        // read_loop:
-        // decrement frame counter
-        addi(Reg::S0, Reg::S0, -1),
-        // A0 = deviceID (0)
-        addiu(Reg::A0, Reg::R0, 0),
-        // A1 = frame counter + firstUsableFrame
-        addiu(Reg::A1, Reg::S0, firstUsableFrame),
-        // A2 = current destination address pointer
-        addiu(Reg::A2, Reg::K1, 0),
-        // mcReadSector(0, frame, dest)
-        jal(0xb0),
-        addiu(Reg::T1, Reg::R0, 0x4f),
-        // mcWaitForStatus(0);
-        addiu(Reg::A0, Reg::R0, 0),
-        jal(0xb0),
-        addiu(Reg::T1, Reg::R0, 0x5d),
-        // if frame counter is not zero, go back 40 bytes (aka read_loop)
-        bne(Reg::S0, Reg::R0, -40),
-        // decrement destination pointer by sizeof(frame) in the delay slot
-        addi(Reg::K1, Reg::K1, -128),
-    };
+    std::vector<uint32_t> loadBinary;
+    if (backwards) {
+        loadBinary = {
+            // S0 = current frame
+            addiu(Reg::GP, Reg::R0, frames),
+            // K1 = destination address of current frame
+            lui(Reg::K1, getHI(lastLoadAddress)),
+            addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
+            // read_loop:
+            // decrement frame counter
+            addi(Reg::GP, Reg::GP, -1),
+            // A0 = deviceID (0)
+            addiu(Reg::A0, Reg::R0, 0),
+            // A1 = frame counter + firstUsableFrame
+            addiu(Reg::A1, Reg::GP, firstUsableFrame),
+            // A2 = current destination address pointer
+            addiu(Reg::A2, Reg::K1, 0),
+            // mcReadSector(0, frame, dest)
+            jal(0xb0),
+            addiu(Reg::T1, Reg::R0, 0x4f),
+            // mcWaitForStatus(0);
+            addiu(Reg::A0, Reg::R0, 0),
+            jal(0xb0),
+            addiu(Reg::T1, Reg::R0, 0x5d),
+            // if frame counter is not zero, go back 40 bytes (aka read_loop)
+            bne(Reg::GP, Reg::R0, -40),
+            // decrement destination pointer by sizeof(frame) in the delay slot
+            addi(Reg::K1, Reg::K1, -128),
+        };
+    } else {
+        loadBinary = {
+            // GP = first frame
+            addiu(Reg::GP, Reg::R0, firstUsableFrame),
+            // K1 = destination address of first frame
+            lui(Reg::K1, getHI(tload)),
+            addiu(Reg::K1, Reg::K1, getLO(tload)),
+            // read_loop:
+            // A0 = deviceID (0)
+            addiu(Reg::A0, Reg::R0, 0),
+            // A1 = frame counter
+            addiu(Reg::A1, Reg::GP, 0),
+            // increment frame counter
+            addi(Reg::GP, Reg::GP, 1),
+            // A2 = current destination address pointer
+            addiu(Reg::A2, Reg::K1, 0),
+            // mcReadSector(0, frame, dest)
+            jal(0xb0),
+            addiu(Reg::T1, Reg::R0, 0x4f),
+            // mcWaitForStatus(0);
+            addiu(Reg::A0, Reg::R0, 0),
+            jal(0xb0),
+            addiu(Reg::T1, Reg::R0, 0x5d),
+            // if frame counter is not last frame, go back 44 bytes (aka read_loop)
+            addiu(Reg::AT, Reg::R0, firstUsableFrame + frames),
+            bne(Reg::GP, Reg::AT, -44),
+            // increment destination pointer by sizeof(frame) in the delay slot
+            addiu(Reg::K1, Reg::K1, 128),
+        };
+    }
 
     std::vector<uint32_t> setGP = {
         lui(Reg::GP, getHI(gp)),
@@ -434,10 +468,8 @@ int main(int argc, char** argv) {
 
         lui(Reg::V0, getHI(pc)),
         addiu(Reg::V0, Reg::V0, getLO(pc)),
-        lw(Reg::RA, 0, Reg::SP),
-        lw(Reg::S0, 4, Reg::SP),
         jr(Reg::V0),
-        addiu(Reg::SP, Reg::SP, 8),
+        addiu(Reg::RA, Reg::S8, 0),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
@@ -459,6 +491,8 @@ int main(int argc, char** argv) {
     const bool returnToShell = args.get<bool>("return", false);
     if (args.get<bool>("noint", false)) append(disableInterrupts);
     if (returnToShell) append(saveRegisters);
+    // If the payload can hold the code to flash the screen, it will be placed here
+    const std::size_t flashScreenIndex = payload.size();
     if (!args.get<bool>("norestore", false)) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
@@ -474,6 +508,30 @@ int main(int argc, char** argv) {
         printf("Payload is too big, using %i instructions out of 32.\n", (int)payload.size());
         return -1;
     }
+
+    // Add screen flashing, if remaining size allows
+    std::vector<uint32_t> flashScreen = {
+        // GP is always 0xa0010ff0. Use this to save an instruction.
+        addiu(Reg::A0, Reg::GP, static_cast<uint16_t>((loaderAddr + 16 + payload.size() * 4)) - 0x10ff0),
+        addiu(Reg::A1, Reg::R0, 3),
+        jal(0xa0),
+        addiu(Reg::T1, Reg::R0, 0x4a),
+    };
+
+    std::vector<uint32_t> gpuWords = {
+        0x0200a5ff,  // paint orange
+        0,           // x, y
+        0x01ff03ff,  // width, height
+    };
+
+    if (payload.size() + flashScreen.size() + gpuWords.size() <= 32) {
+        printf("Adding screen flashing in initial loader\n");
+        payload.insert(payload.begin() + flashScreenIndex, flashScreen.begin(), flashScreen.end());
+        payload.insert(payload.end(), gpuWords.begin(), gpuWords.end());
+    } else {
+        printf("Not enough space to add screen flashing in initial loader\n");
+    }
+
     // Compute payload checksum
     uint8_t crc = 0;
     int crcIndex = 0;
