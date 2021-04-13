@@ -8,8 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "encoder.hh"
 #include "flags.h"
+#include "stage2-bin.h"
+#include "stage2/common/util/encoder.hh"
 
 using namespace Mips::Encoder;
 
@@ -133,6 +134,7 @@ static void usage() {
     printf("-nogp     disable setting $gp during payloads\n");
     printf("-bw       load binary backwards (start with last frame; saves 1 payload instruction)\n");
     printf("-deleted  use deleted fake entries\n");
+    printf("-fastload use fastload method\n");
 }
 
 static uint32_t getU32(const uint8_t* ptr) {
@@ -147,6 +149,16 @@ static uint32_t getU32(const uint8_t* ptr) {
     ret <<= 8;
     ret |= *ptr--;
     return ret;
+}
+
+static void putU32(uint8_t* ptr, uint32_t d) {
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
 }
 
 static int16_t getHI(uint32_t v) {
@@ -291,7 +303,7 @@ int main(int argc, char** argv) {
         uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
         // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
         // If it fails, change to 0xA1.
-        out[offset] = args.get<bool>("delete", false) ? 0xa1 : 0x51;
+        out[offset] = args.get<bool>("deleted", false) ? 0xa1 : 0x51;
 
         out[offset + 4] = fileSize & 0xff;
         fileSize >>= 8;
@@ -364,17 +376,49 @@ int main(int argc, char** argv) {
         }
     }
 
+    uint32_t stage2_tload = tload;
+    uint32_t stage2_pc = pc;
+    uint32_t stage2_tsize = tsize;
+
+    if (args.get<bool>("fastload", false)) {
+        stage2_tload = 0x801a0000;
+        stage2_pc = 0x8001a000;
+        stage2_tsize = sizeof(stage2);
+    }
+
     constexpr unsigned firstUsableFrame = 64;
     const bool backwards = args.get<bool>("bw", false);
 
     if (sp == 0) sp = 0x801ffff0;
-    unsigned frames = (tsize + 127) >> 7;
+    unsigned frames = (stage2_tsize + 127) >> 7;
     constexpr unsigned availableFrames = ((128 * 1024) >> 7) - firstUsableFrame;
-    if (frames > availableFrames) {
-        printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
-        return -1;
+    if (args.get<bool>("fastload", false)) {
+        unsigned stage3_frames = (tsize + 127) >> 7;
+        if ((frames + stage3_frames + 1) > availableFrames) {
+            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
+            return -1;
+        }
+        memcpy(out.data() + firstUsableFrame * 128, stage2, stage2_tsize);
+        uint8_t * configPtr = out.data() + (firstUsableFrame + frames) * 128;
+        putU32(configPtr, pc);
+        configPtr += 4;
+        putU32(configPtr, gp);
+        configPtr += 4;
+        putU32(configPtr, sp);
+        configPtr += 4;
+        putU32(configPtr, tload);
+        configPtr += 4;
+        putU32(configPtr, frames);
+        configPtr += 4;
+        memcpy(configPtr, "FREEPSXBOOT FASTLOAD PAYLOAD", 28);
+        memcpy(out.data() + (firstUsableFrame + frames + 1) * 128, payloadPtr, tsize);
+    } else {
+        if (frames > availableFrames) {
+            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
+            return -1;
+        }
+        memcpy(out.data() + firstUsableFrame * 128, payloadPtr, stage2_tsize);
     }
-    memcpy(out.data() + firstUsableFrame * 128, payloadPtr, tsize);
 
     std::vector<uint32_t> disableInterrupts = {
         // disabling all interrupts except for memory card
@@ -509,7 +553,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // Add screen flashing, if remaining size allows
+    // Add screen flashing, if remaining size allows, and fastload not enabled
     std::vector<uint32_t> flashScreen = {
         // GP is always 0xa0010ff0. Use this to save an instruction.
         addiu(Reg::A0, Reg::GP, static_cast<uint16_t>((loaderAddr + 16 + payload.size() * 4)) - 0x10ff0),
@@ -524,11 +568,11 @@ int main(int argc, char** argv) {
         0x01ff03ff,  // width, height
     };
 
-    if (payload.size() + flashScreen.size() + gpuWords.size() <= 32) {
+    if (!args.get<bool>("fastload", false) && (payload.size() + flashScreen.size() + gpuWords.size() <= 32)) {
         printf("Adding screen flashing in initial loader\n");
         payload.insert(payload.begin() + flashScreenIndex, flashScreen.begin(), flashScreen.end());
         payload.insert(payload.end(), gpuWords.begin(), gpuWords.end());
-    } else {
+    } else if (!args.get<bool>("fastload", false)) {
         printf("Not enough space to add screen flashing in initial loader\n");
     }
 
@@ -547,9 +591,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     // Otherwise, make the checksum bad.
-    if (crc == 0) {
-        out[0x87f] = 0xCD;
-    }
+    out[0x87f] = ~crc;
     unsigned o = 0;
     for (auto p : payload) {
         out[0x800 + o++] = p & 0xff;
