@@ -7,14 +7,14 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * Memcarduino. Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
 
-# WARNING AND DISCLAIMER
+# WARNING
 **By flashing FreePSXBoot to your Memory Card, you need to be aware of the following:**
 
 * The .mcd image files replace the whole contents of your card, meaning that your Memory Card will be **ENTIRELY WIPED** after flashing a .mcd image, so **creating a backup of your saves is compulsory**.
 
 * Because the exploit has **corrupt Memory Card filesystem on purpose** for it to run, your card will become **unusable for normal operations**. That is, you **won't be able to use this card for saving and loading game saves** and **it will cause crashes on your PS1 or your PS2 console** *(if you have any)*.
 
-* Once installed, it will become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card, if for example your installation method was Memory Card Annihilator v2, as it will also crash.
+* Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, as it will also crash. If you happen to own a game that shows the memory card's content before creating a save file like *Cool Boarders 4*, chances are you can recover your card's normal functionality by overwriting the exploit with the game's save.
 
 # Usage
 
