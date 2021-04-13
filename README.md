@@ -6,6 +6,8 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * A PS2 and the software Memory Card Annihilator v2 (use "Restore MC image")
 * Memcarduino. Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
+* Using [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [NOTPSXserial](https://github.com/JonathanDotCel/NOTPSXSerial) with a serial/USB cable, using the command : `nops /fast /mcup 0 FILE.mcd COMPORT` where `FILE` is the mcd file corresponding to your model, and `COMPORT` corresponds to your computer serial port.
+
 
 # WARNING AND DISCLAIMER
 **By flashing FreePSXBoot to your Memory Card, you need to be aware of the following:**
