@@ -214,7 +214,7 @@ int main(int argc, char** argv) {
     uint32_t vector;
     uint32_t oldAddr;
     uint32_t newAddr;
-    uint32_t tload = 0;
+    uint32_t stage3_tload = 0;
 
     const char* argname = nullptr;
     try {
@@ -237,7 +237,7 @@ int main(int argc, char** argv) {
         }
         if (tloadStr.has_value()) {
             argname = "tload";
-            tload = std::stoul(tloadStr.value(), nullptr, 0);
+            stage3_tload = std::stoul(tloadStr.value(), nullptr, 0);
         }
     } catch (...) {
         printf("Error parsing argument %s\n", argname);
@@ -353,20 +353,20 @@ int main(int argc, char** argv) {
     }
     fclose(inFile);
 
-    uint32_t tsize = in.size();
-    uint32_t gp = 0;
-    uint32_t pc = tload;
-    uint32_t sp = 0;
+    uint32_t stage3_tsize = in.size();
+    uint32_t stage3_gp = 0;
+    uint32_t stage3_pc = stage3_tload;
+    uint32_t stage3_sp = 0;
 
     uint8_t* payloadPtr = in.data();
 
     if (memcmp(in.data(), "PS-X EXE", 8) == 0) {
-        pc = getU32(in.data() + 0x10);
-        gp = getU32(in.data() + 0x14);
-        tload = getU32(in.data() + 0x18);
-        tsize = getU32(in.data() + 0x1c);
-        sp = getU32(in.data() + 0x30);
-        sp += getU32(in.data() + 0x34);
+        stage3_pc = getU32(in.data() + 0x10);
+        stage3_gp = getU32(in.data() + 0x14);
+        stage3_tload = getU32(in.data() + 0x18);
+        stage3_tsize = getU32(in.data() + 0x1c);
+        stage3_sp = getU32(in.data() + 0x30);
+        stage3_sp += getU32(in.data() + 0x34);
         payloadPtr = in.data() + 2048;
     } else {
         if (!tloadStr.has_value()) {
@@ -376,44 +376,55 @@ int main(int argc, char** argv) {
         }
     }
 
-    uint32_t stage2_tload = tload;
-    uint32_t stage2_pc = pc;
-    uint32_t stage2_tsize = tsize;
+    uint32_t stage2_tload = stage3_tload;
+    uint32_t stage2_pc = stage3_pc;
+    uint32_t stage2_tsize = stage3_tsize;
 
     if (args.get<bool>("fastload", false)) {
         stage2_tload = 0x801a0000;
         stage2_pc = 0x801a0000;
         stage2_tsize = sizeof(stage2);
+
+        uint32_t stage2_end = stage2_tload + stage2_tsize;
+        uint32_t stage3_end = stage3_tload + stage3_tsize;
+
+        if (((stage3_tload <= stage2_end) && (stage2_end <= stage3_end)) ||
+            ((stage3_tload <= stage2_tload) && (stage2_tload <= stage3_end))) {
+            printf("Stage2 and stage3 payloads are intersecting.\n");
+            printf("Stage2: 0x%08x - 0x%08x\n", stage2_tload, stage2_end);
+            printf("Stage3: 0x%08x - 0x%08x\n", stage3_tload, stage3_end);
+            return -1;
+        }
     }
 
     constexpr unsigned firstUsableFrame = 64;
     const bool backwards = args.get<bool>("bw", false);
 
-    if (sp == 0) sp = 0x801ffff0;
-    unsigned frames = (stage2_tsize + 127) >> 7;
+    if (stage3_sp == 0) stage3_sp = 0x801ffff0;
+    unsigned stage2_frames = (stage2_tsize + 127) >> 7;
+    unsigned stage3_frames = (stage3_tsize + 127) >> 7;
     constexpr unsigned availableFrames = ((128 * 1024) >> 7) - firstUsableFrame;
     if (args.get<bool>("fastload", false)) {
-        unsigned stage3_frames = (tsize + 127) >> 7;
-        if ((frames + stage3_frames + 1) > availableFrames) {
+        if ((stage2_frames + stage3_frames + 1) > availableFrames) {
             printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
             return -1;
         }
         memcpy(out.data() + firstUsableFrame * 128, stage2, stage2_tsize);
-        uint8_t * configPtr = out.data() + (firstUsableFrame + frames) * 128;
-        putU32(configPtr, pc);
+        uint8_t * configPtr = out.data() + (firstUsableFrame + stage2_frames) * 128;
+        putU32(configPtr, stage3_pc);
         configPtr += 4;
-        putU32(configPtr, gp);
+        putU32(configPtr, stage3_gp);
         configPtr += 4;
-        putU32(configPtr, sp);
+        putU32(configPtr, stage3_sp);
         configPtr += 4;
-        putU32(configPtr, tload);
+        putU32(configPtr, stage3_tload);
         configPtr += 4;
-        putU32(configPtr, frames);
+        putU32(configPtr, stage3_frames);
         configPtr += 4;
         memcpy(configPtr, "FREEPSXBOOT FASTLOAD PAYLOAD", 28);
-        memcpy(out.data() + (firstUsableFrame + frames + 1) * 128, payloadPtr, tsize);
+        memcpy(out.data() + (firstUsableFrame + stage2_frames + 1) * 128, payloadPtr, stage3_tsize);
     } else {
-        if (frames > availableFrames) {
+        if (stage2_frames > availableFrames) {
             printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
             return -1;
         }
@@ -439,12 +450,12 @@ int main(int argc, char** argv) {
         sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
     };
 
-    unsigned lastLoadAddress = stage2_tload + 128 * (frames - 1);
+    unsigned lastLoadAddress = stage2_tload + 128 * (stage2_frames - 1);
     std::vector<uint32_t> loadBinary;
     if (backwards) {
         loadBinary = {
             // S0 = current frame
-            addiu(Reg::GP, Reg::R0, frames),
+            addiu(Reg::GP, Reg::R0, stage2_frames),
             // K1 = destination address of current frame
             lui(Reg::K1, getHI(lastLoadAddress)),
             addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
@@ -493,7 +504,7 @@ int main(int argc, char** argv) {
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x5d),
             // if frame counter is not last frame, go back 44 bytes (aka read_loop)
-            addiu(Reg::AT, Reg::R0, firstUsableFrame + frames),
+            addiu(Reg::AT, Reg::R0, firstUsableFrame + stage2_frames),
             bne(Reg::GP, Reg::AT, -44),
             // increment destination pointer by sizeof(frame) in the delay slot
             addiu(Reg::K1, Reg::K1, 128),
@@ -501,8 +512,8 @@ int main(int argc, char** argv) {
     }
 
     std::vector<uint32_t> setGP = {
-        lui(Reg::GP, getHI(gp)),
-        addiu(Reg::GP, Reg::GP, getLO(gp)),
+        lui(Reg::GP, getHI(stage3_gp)),
+        addiu(Reg::GP, Reg::GP, getLO(stage3_gp)),
     };
 
     std::vector<uint32_t> bootstrapReturn = {
@@ -520,8 +531,8 @@ int main(int argc, char** argv) {
         // bootstrap
         lui(Reg::RA, getHI(stage2_pc)),
         addiu(Reg::RA, Reg::RA, getLO(stage2_pc)),
-        lui(Reg::SP, getHI(sp)),
-        addiu(Reg::SP, Reg::SP, getLO(sp)),
+        lui(Reg::SP, getHI(stage3_sp)),
+        addiu(Reg::SP, Reg::SP, getLO(stage3_sp)),
 
         // flush cache
         j(0xa0),
@@ -540,7 +551,7 @@ int main(int argc, char** argv) {
     if (!args.get<bool>("norestore", false)) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
-    const bool doSetGP = gp != 0 && !args.get<bool>("nogp", false);
+    const bool doSetGP = stage3_gp != 0 && !args.get<bool>("nogp", false);
     if (doSetGP) append(setGP);
 
     if (returnToShell) {

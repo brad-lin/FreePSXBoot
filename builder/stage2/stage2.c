@@ -39,6 +39,9 @@ int mcReadStepper(uint32_t frame, uint8_t* buffer, int step) {
         case 2:
             o = 'R';
             break;
+        case 5:
+            o = frame >> 8;
+            // fallthrough
         case 3:
         case 4:
         case 7:
@@ -46,10 +49,6 @@ int mcReadStepper(uint32_t frame, uint8_t* buffer, int step) {
         case 9:
         case 10:
             SIOS[0].fifo;
-            break;
-        case 5:
-            SIOS[0].fifo;
-            o = frame >> 8;
             break;
         case 6:
             o = frame;
@@ -86,8 +85,6 @@ static void mcReadFrame(uint32_t frame, uint8_t* buffer) {
     int step = 0;
     int readCount = 0;
     while (1) {
-        waitCardIRQ();
-        busyLoop(0x20);
         if (!s_readBytes) {
             int r = mcReadStepper(frame, buffer, ++step);
             if (r) break;
@@ -98,6 +95,8 @@ static void mcReadFrame(uint32_t frame, uint8_t* buffer) {
             IREG = ~IRQ_CONTROLLER;
             if (++readCount > 0x7e) s_readBytes = 0;
         }
+        waitCardIRQ();
+        busyLoop(0x20);
     }
 
     SIOS[0].ctrl = 0;
@@ -106,10 +105,12 @@ static void mcReadFrame(uint32_t frame, uint8_t* buffer) {
 }
 
 static const union Color c_fgIdle = {.r = 156, .g = 220, .b = 218};
-
-// djbHash("FREEPSXBOOT FASTLOAD PAYLOAD", 28) = 0x7d734e54
+static const int SIG_LEN = 28;
+// djbHash("FREEPSXBOOT FASTLOAD PAYLOAD", SIG_LEN) = 0x7d734e54
 static const uint32_t c_signatureHash = 0x7d734e54;
 
+// this union represents the structure of the magic frame
+// inserted by the builder between stage2 and stage3
 union Header {
     struct {
         uint32_t pc;
@@ -126,8 +127,12 @@ static inline __attribute__((noreturn)) void jump(union Header* header) {
     __asm__ volatile("lw $ra, 0(%0)\nlw $gp, 4(%0)\nlw $sp, 8(%0)\nli $t1, 0x44\nj 0xa0\n" : : "r"(header));
 }
 
-void main() {
+__attribute__((noreturn)) void main() {
+    // disable all interrupts
     writeCOP0Status(0);
+    IMASK = 0;
+
+    // fast change gpu settings and display a solid color
     const int isPAL = (*((char*)0xbfc7ff52) == 'E');
     struct DisplayModeConfig config = {
         .hResolution = HR_320,
@@ -138,11 +143,12 @@ void main() {
         .hResolutionExtended = HRE_NORMAL,
     };
     setDisplayMode(&config);
-    setDisplayArea(0, 0);
-    setDrawingArea(0, 0, 320, 240);
-    setDrawingOffset(0, 0);
+    waitGPU();
+    GPU_DATA = 1 << 10;
     fill(c_fgIdle);
 
+    // reset the SIO in case the stage1 occurred midway through
+    // a transaction with the card
     SIOS[0].ctrl = 0x40;
     SIOS[0].baudRate = 0x88;
     SIOS[0].mode = 13;
@@ -157,6 +163,9 @@ void main() {
     union Header header;
 
     int gotHeader = 0;
+    // parse the memory card starting from frame 64
+    // to try and locate our magic header, then to
+    // load our stage3
     for (uint32_t frame = 64; frame < 1024; frame++) {
         if (gotHeader) {
             mcReadFrame(frame, header.tload);
@@ -164,10 +173,13 @@ void main() {
             if (--header.frames == 0) jump(&header);
         } else {
             mcReadFrame(frame, header.buffer);
-            if (djbHash(header.signature, 28) == c_signatureHash) gotHeader = 1;
+            // we don't store the actual signature string
+            // to save on some rodata space
+            if (djbHash(header.signature, SIG_LEN) == c_signatureHash) gotHeader = 1;
         }
     }
 
+    // this shouldn't happen, but just in case
     while (1)
         ;
 }
