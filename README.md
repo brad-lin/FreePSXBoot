@@ -4,7 +4,7 @@ Exploit allowing to load arbitrary code on the PSX (i.e. PlayStation 1) using on
 To use it, you will need a way to copy **full memory card images** (not individual files) to a memory card. Some possibilities are:
 
 * A PS2 and the software Memory Card Annihilator v2 (use "Restore MC image")
-* Memcarduino. Requires soldering wires to the memory card.
+* [Memcarduino](https://github.com/ShendoXT/memcarduino). Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
 * Using [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [NOTPSXserial](https://github.com/JonathanDotCel/NOTPSXSerial) with a serial/USB cable, using the command : `nops /fast /mcup 0 FILE.mcd COMPORT` where `FILE` is the mcd file corresponding to your model, and `COMPORT` corresponds to your computer serial port.
 
@@ -27,6 +27,13 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * If the screen doesn't flash orange after 20 seconds, you have either used a wrong memory card image, or your model uses an exploit which is not 100% reliable. In that case, power off your PlayStation, wait for 1 minute, and try again.
 * Once Unirom is loaded, you can insert a CD, close the lid, and press **R1** to load the game.
 * Don't forget to remove your memory card, as its exploit will trigger into games as well. This isn't an issue when using the Memcard Pro, as it will automatically change the virtual card to the game you're booting.
+
+# Restoring the memory card
+
+* The most reliable way is to use [Memcarduino](https://github.com/ShendoXT/memcarduino) and its FORMAT option.
+* Some games can be used to overwrite FreePSXBoot when saving progress, for example Cool Boarders 4.
+* Memory Card Annihilator v2 has been reported to be able to format FreePSXBoot memory cards, but they must be inserted **after** it has started up.
+* We plan to bundle a complete version of Unirom in the memory card images in the future, with the ability to format memory cards.
 
 # Supported models
 
