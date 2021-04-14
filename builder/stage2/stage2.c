@@ -1,8 +1,9 @@
+#include "common/hardware/cop0.h"
 #include "common/hardware/gpu.h"
 #include "common/hardware/hwregs.h"
 #include "common/hardware/irq.h"
 #include "common/syscalls/syscalls.h"
-#include "common/util/djbHash.h"
+#include "common/util/djbhash.h"
 
 static void fill(const union Color bg) {
     struct FastFill ff = {
@@ -15,19 +16,8 @@ static void fill(const union Color bg) {
     fastFill(&ff);
 }
 
-static void waitVSync() {
-    uint32_t imask = IMASK;
-
-    IMASK = imask | IRQ_VBLANK;
-
-    while ((IREG & IRQ_VBLANK) == 0)
-        ;
-    IREG &= ~IRQ_VBLANK;
-    IMASK = imask;
-}
-
 static void busyLoop(int delay) {
-    for (unsigned i = 0; i < delay; i++) __asm__ __volatile__("");
+    for (; delay >= 0; delay--) __asm__ __volatile__("");
 }
 
 static void waitCardIRQ() {
@@ -39,19 +29,15 @@ static void waitCardIRQ() {
 static uint8_t s_readBytes = 0;
 
 int mcReadStepper(uint32_t frame, uint8_t* buffer, int step) {
-    uint8_t b;
+    uint8_t o = 0;
 
     switch (step) {
         case 1:
             SIOS[0].ctrl = 0x1003;
-            SIOS[0].fifo = 0x81;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            o = 0x81;
             break;
         case 2:
-            SIOS[0].fifo = 'R';
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            o = 'R';
             break;
         case 3:
         case 4:
@@ -60,45 +46,32 @@ int mcReadStepper(uint32_t frame, uint8_t* buffer, int step) {
         case 9:
         case 10:
             SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
             break;
         case 5:
             SIOS[0].fifo;
-            SIOS[0].fifo = frame >> 8;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            o = frame >> 8;
             break;
         case 6:
-            SIOS[0].fifo = frame;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
+            o = frame;
             break;
         case 11:
             SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
             s_readBytes = 1;
             break;
         case 12:
-            b = SIOS[0].fifo;
-            SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
-            *buffer = b;
+            *buffer = SIOS[0].fifo;
             break;
         case 13:
             SIOS[0].fifo;
             SIOS[0].fifo = 0;
-            SIOS[0].ctrl |= 0x0010;
-            IREG = ~IRQ_CONTROLLER;
             while ((SIOS[0].stat & 2) == 0)
                 ;
             SIOS[0].fifo;
             return 1;
     }
+    SIOS[0].fifo = o;
+    SIOS[0].ctrl |= 0x0010;
+    IREG = ~IRQ_CONTROLLER;
     return 0;
 }
 
@@ -113,6 +86,8 @@ static void mcReadFrame(uint32_t frame, uint8_t* buffer) {
     int step = 0;
     int readCount = 0;
     while (1) {
+        waitCardIRQ();
+        busyLoop(0x20);
         if (!s_readBytes) {
             int r = mcReadStepper(frame, buffer, ++step);
             if (r) break;
@@ -125,6 +100,8 @@ static void mcReadFrame(uint32_t frame, uint8_t* buffer) {
         }
     }
 
+    SIOS[0].ctrl = 0;
+
     IMASK = imask;
 }
 
@@ -133,10 +110,37 @@ static const union Color c_fgIdle = {.r = 156, .g = 220, .b = 218};
 // djbHash("FREEPSXBOOT FASTLOAD PAYLOAD", 28) = 0x7d734e54
 static const uint32_t c_signatureHash = 0x7d734e54;
 
+union Header {
+    struct {
+        uint32_t pc;
+        uint32_t gp;
+        uint32_t sp;
+        uint8_t* tload;
+        uint32_t frames;
+        char signature[];
+    };
+    uint8_t buffer[128];
+};
+
+static inline __attribute__((noreturn)) void jump(union Header* header) {
+    __asm__ volatile("lw $ra, 0(%0)\nlw $gp, 4(%0)\nlw $sp, 8(%0)\nli $t1, 0x44\nj 0xa0\n" : : "r"(header));
+}
+
 void main() {
-    waitVSync();
-    fill(c_fgIdle);
-    waitVSync();
+    writeCOP0Status(0);
+    const int isPAL = (*((char*)0xbfc7ff52) == 'E');
+    struct DisplayModeConfig config = {
+        .hResolution = HR_320,
+        .vResolution = VR_240,
+        .videoMode = isPAL ? VM_PAL : VM_NTSC,
+        .colorDepth = CD_15BITS,
+        .videoInterlace = VI_OFF,
+        .hResolutionExtended = HRE_NORMAL,
+    };
+    setDisplayMode(&config);
+    setDisplayArea(0, 0);
+    setDrawingArea(0, 0, 320, 240);
+    setDrawingOffset(0, 0);
     fill(c_fgIdle);
 
     SIOS[0].ctrl = 0x40;
@@ -150,28 +154,14 @@ void main() {
     busyLoop(10);
     SIOS[0].ctrl = 0;
 
-    union {
-        struct {
-            uint32_t pc;
-            uint32_t gp;
-            uint32_t sp;
-            uint8_t* tload;
-            uint32_t frames;
-            char signature[];
-        };
-        uint8_t buffer[128];
-    } header;
+    union Header header;
 
     int gotHeader = 0;
-    uint32_t counter = 0;
     for (uint32_t frame = 64; frame < 1024; frame++) {
         if (gotHeader) {
             mcReadFrame(frame, header.tload);
             header.tload += 128;
-            if (++counter == header.frames) {
-                __asm__ volatile("move $v0, %0\nmove $gp, %1\nmove $sp, %2\njr $v0\n"
-                                 : "=r"(header.pc), "=r"(header.gp), "=r"(header.sp));
-            }
+            if (--header.frames == 0) jump(&header);
         } else {
             mcReadFrame(frame, header.buffer);
             if (djbHash(header.signature, 28) == c_signatureHash) gotHeader = 1;

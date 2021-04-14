@@ -382,7 +382,7 @@ int main(int argc, char** argv) {
 
     if (args.get<bool>("fastload", false)) {
         stage2_tload = 0x801a0000;
-        stage2_pc = 0x8001a000;
+        stage2_pc = 0x801a0000;
         stage2_tsize = sizeof(stage2);
     }
 
@@ -439,7 +439,7 @@ int main(int argc, char** argv) {
         sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
     };
 
-    unsigned lastLoadAddress = tload + 128 * (frames - 1);
+    unsigned lastLoadAddress = stage2_tload + 128 * (frames - 1);
     std::vector<uint32_t> loadBinary;
     if (backwards) {
         loadBinary = {
@@ -474,8 +474,8 @@ int main(int argc, char** argv) {
             // GP = first frame
             addiu(Reg::GP, Reg::R0, firstUsableFrame),
             // K1 = destination address of first frame
-            lui(Reg::K1, getHI(tload)),
-            addiu(Reg::K1, Reg::K1, getLO(tload)),
+            lui(Reg::K1, getHI(stage2_tload)),
+            addiu(Reg::K1, Reg::K1, getLO(stage2_tload)),
             // read_loop:
             // A0 = deviceID (0)
             addiu(Reg::A0, Reg::R0, 0),
@@ -510,16 +510,16 @@ int main(int argc, char** argv) {
         jal(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
 
-        lui(Reg::V0, getHI(pc)),
-        addiu(Reg::V0, Reg::V0, getLO(pc)),
+        lui(Reg::V0, getHI(stage2_pc)),
+        addiu(Reg::V0, Reg::V0, getLO(stage2_pc)),
         jr(Reg::V0),
         addiu(Reg::RA, Reg::S8, 0),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
         // bootstrap
-        lui(Reg::RA, getHI(pc)),
-        addiu(Reg::RA, Reg::RA, getLO(pc)),
+        lui(Reg::RA, getHI(stage2_pc)),
+        addiu(Reg::RA, Reg::RA, getLO(stage2_pc)),
         lui(Reg::SP, getHI(sp)),
         addiu(Reg::SP, Reg::SP, getLO(sp)),
 
