@@ -16,7 +16,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 * Because the exploit has **corrupt Memory Card filesystem on purpose** for it to run, your card will become **unusable for normal operations**. That is, you **won't be able to use this card for saving and loading game saves** and **it will cause crashes on your PS1 or your PS2 console** *(if you have any)*.
 
-* Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, as it will also crash. If you happen to own a game that shows the memory card's content before creating a save file like *Cool Boarders 4*, chances are you can recover your card's normal functionality by overwriting the exploit with the game's save.
+* Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, then it will also crash.
 
 # Usage
 
@@ -31,14 +31,14 @@ To use it, you will need a way to copy **full memory card images** (not individu
 # Restoring the memory card
 
 * The most reliable way is to use [Memcarduino](https://github.com/ShendoXT/memcarduino) and its FORMAT option.
-* Some games can be used to overwrite FreePSXBoot when saving progress, for example Cool Boarders 4.
-* Memory Card Annihilator v2 has been reported to be able to format FreePSXBoot memory cards, but they must be inserted **after** it has started up.
+* Some games that have a save file manager (shows the contents of the memory card before saving) built into them, like *OddWorld: Abe's Oddysee* for example, can be used to overwrite FreePSXBoot when saving progress.
 * We plan to bundle a complete version of Unirom in the memory card images in the future, with the ability to format memory cards.
 
 # Supported models
 
 * All models are supported except SCPH-1000 and SCPH-3000, which will probably be supported in the future.
 * Some models use a 100% reliable exploit, other models use an earlier version of the exploit, which depends on uninitialized memory and is therefore not 100% reliable (see caveat below).
+* Certain PSOne consoles appear to not support the exploit in its entirity. We are currently checking on the issue to ensure that it is fully exploitable.
 * See the table below for more details and download links.
 
 ## Changelog
