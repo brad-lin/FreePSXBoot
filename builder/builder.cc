@@ -8,8 +8,9 @@
 #include <unordered_map>
 #include <vector>
 
-#include "encoder.hh"
 #include "flags.h"
+#include "stage2-bin.h"
+#include "stage2/common/util/encoder.hh"
 
 using namespace Mips::Encoder;
 
@@ -133,6 +134,7 @@ static void usage() {
     printf("-nogp     disable setting $gp during payloads\n");
     printf("-bw       load binary backwards (start with last frame; saves 1 payload instruction)\n");
     printf("-deleted  use deleted fake entries\n");
+    printf("-fastload use fastload method\n");
 }
 
 static uint32_t getU32(const uint8_t* ptr) {
@@ -147,6 +149,16 @@ static uint32_t getU32(const uint8_t* ptr) {
     ret <<= 8;
     ret |= *ptr--;
     return ret;
+}
+
+static void putU32(uint8_t* ptr, uint32_t d) {
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
+    d >>= 8;
+    *ptr++ = d & 0xff;
 }
 
 static int16_t getHI(uint32_t v) {
@@ -202,7 +214,7 @@ int main(int argc, char** argv) {
     uint32_t vector;
     uint32_t oldAddr;
     uint32_t newAddr;
-    uint32_t tload = 0;
+    uint32_t stage3_tload = 0;
 
     const char* argname = nullptr;
     try {
@@ -225,7 +237,7 @@ int main(int argc, char** argv) {
         }
         if (tloadStr.has_value()) {
             argname = "tload";
-            tload = std::stoul(tloadStr.value(), nullptr, 0);
+            stage3_tload = std::stoul(tloadStr.value(), nullptr, 0);
         }
     } catch (...) {
         printf("Error parsing argument %s\n", argname);
@@ -291,7 +303,7 @@ int main(int argc, char** argv) {
         uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
         // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
         // If it fails, change to 0xA1.
-        out[offset] = args.get<bool>("delete", false) ? 0xa1 : 0x51;
+        out[offset] = args.get<bool>("deleted", false) ? 0xa1 : 0x51;
 
         out[offset + 4] = fileSize & 0xff;
         fileSize >>= 8;
@@ -341,20 +353,20 @@ int main(int argc, char** argv) {
     }
     fclose(inFile);
 
-    uint32_t tsize = in.size();
-    uint32_t gp = 0;
-    uint32_t pc = tload;
-    uint32_t sp = 0;
+    uint32_t stage3_tsize = in.size();
+    uint32_t stage3_gp = 0;
+    uint32_t stage3_pc = stage3_tload;
+    uint32_t stage3_sp = 0;
 
     uint8_t* payloadPtr = in.data();
 
     if (memcmp(in.data(), "PS-X EXE", 8) == 0) {
-        pc = getU32(in.data() + 0x10);
-        gp = getU32(in.data() + 0x14);
-        tload = getU32(in.data() + 0x18);
-        tsize = getU32(in.data() + 0x1c);
-        sp = getU32(in.data() + 0x30);
-        sp += getU32(in.data() + 0x34);
+        stage3_pc = getU32(in.data() + 0x10);
+        stage3_gp = getU32(in.data() + 0x14);
+        stage3_tload = getU32(in.data() + 0x18);
+        stage3_tsize = getU32(in.data() + 0x1c);
+        stage3_sp = getU32(in.data() + 0x30);
+        stage3_sp += getU32(in.data() + 0x34);
         payloadPtr = in.data() + 2048;
     } else {
         if (!tloadStr.has_value()) {
@@ -364,17 +376,60 @@ int main(int argc, char** argv) {
         }
     }
 
+    uint32_t stage2_tload = stage3_tload;
+    uint32_t stage2_pc = stage3_pc;
+    uint32_t stage2_tsize = stage3_tsize;
+
+    if (args.get<bool>("fastload", false)) {
+        stage2_tload = 0x801a0000;
+        stage2_pc = 0x801a0000;
+        stage2_tsize = sizeof(stage2);
+
+        uint32_t stage2_end = stage2_tload + stage2_tsize;
+        uint32_t stage3_end = stage3_tload + stage3_tsize;
+
+        if (((stage3_tload <= stage2_end) && (stage2_end <= stage3_end)) ||
+            ((stage3_tload <= stage2_tload) && (stage2_tload <= stage3_end))) {
+            printf("Stage2 and stage3 payloads are intersecting.\n");
+            printf("Stage2: 0x%08x - 0x%08x\n", stage2_tload, stage2_end);
+            printf("Stage3: 0x%08x - 0x%08x\n", stage3_tload, stage3_end);
+            return -1;
+        }
+    }
+
     constexpr unsigned firstUsableFrame = 64;
     const bool backwards = args.get<bool>("bw", false);
 
-    if (sp == 0) sp = 0x801ffff0;
-    unsigned frames = (tsize + 127) >> 7;
+    if (stage3_sp == 0) stage3_sp = 0x801ffff0;
+    unsigned stage2_frames = (stage2_tsize + 127) >> 7;
+    unsigned stage3_frames = (stage3_tsize + 127) >> 7;
     constexpr unsigned availableFrames = ((128 * 1024) >> 7) - firstUsableFrame;
-    if (frames > availableFrames) {
-        printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
-        return -1;
+    if (args.get<bool>("fastload", false)) {
+        if ((stage2_frames + stage3_frames + 1) > availableFrames) {
+            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
+            return -1;
+        }
+        memcpy(out.data() + firstUsableFrame * 128, stage2, stage2_tsize);
+        uint8_t * configPtr = out.data() + (firstUsableFrame + stage2_frames) * 128;
+        putU32(configPtr, stage3_pc);
+        configPtr += 4;
+        putU32(configPtr, stage3_gp);
+        configPtr += 4;
+        putU32(configPtr, stage3_sp);
+        configPtr += 4;
+        putU32(configPtr, stage3_tload);
+        configPtr += 4;
+        putU32(configPtr, stage3_frames);
+        configPtr += 4;
+        memcpy(configPtr, "FREEPSXBOOT FASTLOAD PAYLOAD", 28);
+        memcpy(out.data() + (firstUsableFrame + stage2_frames + 1) * 128, payloadPtr, stage3_tsize);
+    } else {
+        if (stage2_frames > availableFrames) {
+            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
+            return -1;
+        }
+        memcpy(out.data() + firstUsableFrame * 128, payloadPtr, stage2_tsize);
     }
-    memcpy(out.data() + firstUsableFrame * 128, payloadPtr, tsize);
 
     std::vector<uint32_t> disableInterrupts = {
         // disabling all interrupts except for memory card
@@ -395,12 +450,12 @@ int main(int argc, char** argv) {
         sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
     };
 
-    unsigned lastLoadAddress = tload + 128 * (frames - 1);
+    unsigned lastLoadAddress = stage2_tload + 128 * (stage2_frames - 1);
     std::vector<uint32_t> loadBinary;
     if (backwards) {
         loadBinary = {
             // S0 = current frame
-            addiu(Reg::GP, Reg::R0, frames),
+            addiu(Reg::GP, Reg::R0, stage2_frames),
             // K1 = destination address of current frame
             lui(Reg::K1, getHI(lastLoadAddress)),
             addiu(Reg::K1, Reg::K1, getLO(lastLoadAddress)),
@@ -430,8 +485,8 @@ int main(int argc, char** argv) {
             // GP = first frame
             addiu(Reg::GP, Reg::R0, firstUsableFrame),
             // K1 = destination address of first frame
-            lui(Reg::K1, getHI(tload)),
-            addiu(Reg::K1, Reg::K1, getLO(tload)),
+            lui(Reg::K1, getHI(stage2_tload)),
+            addiu(Reg::K1, Reg::K1, getLO(stage2_tload)),
             // read_loop:
             // A0 = deviceID (0)
             addiu(Reg::A0, Reg::R0, 0),
@@ -449,7 +504,7 @@ int main(int argc, char** argv) {
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x5d),
             // if frame counter is not last frame, go back 44 bytes (aka read_loop)
-            addiu(Reg::AT, Reg::R0, firstUsableFrame + frames),
+            addiu(Reg::AT, Reg::R0, firstUsableFrame + stage2_frames),
             bne(Reg::GP, Reg::AT, -44),
             // increment destination pointer by sizeof(frame) in the delay slot
             addiu(Reg::K1, Reg::K1, 128),
@@ -457,8 +512,8 @@ int main(int argc, char** argv) {
     }
 
     std::vector<uint32_t> setGP = {
-        lui(Reg::GP, getHI(gp)),
-        addiu(Reg::GP, Reg::GP, getLO(gp)),
+        lui(Reg::GP, getHI(stage3_gp)),
+        addiu(Reg::GP, Reg::GP, getLO(stage3_gp)),
     };
 
     std::vector<uint32_t> bootstrapReturn = {
@@ -466,18 +521,18 @@ int main(int argc, char** argv) {
         jal(0xa0),
         addiu(Reg::T1, Reg::R0, 0x44),
 
-        lui(Reg::V0, getHI(pc)),
-        addiu(Reg::V0, Reg::V0, getLO(pc)),
+        lui(Reg::V0, getHI(stage2_pc)),
+        addiu(Reg::V0, Reg::V0, getLO(stage2_pc)),
         jr(Reg::V0),
         addiu(Reg::RA, Reg::S8, 0),
     };
 
     std::vector<uint32_t> bootstrapNoReturn = {
         // bootstrap
-        lui(Reg::RA, getHI(pc)),
-        addiu(Reg::RA, Reg::RA, getLO(pc)),
-        lui(Reg::SP, getHI(sp)),
-        addiu(Reg::SP, Reg::SP, getLO(sp)),
+        lui(Reg::RA, getHI(stage2_pc)),
+        addiu(Reg::RA, Reg::RA, getLO(stage2_pc)),
+        lui(Reg::SP, getHI(stage3_sp)),
+        addiu(Reg::SP, Reg::SP, getLO(stage3_sp)),
 
         // flush cache
         j(0xa0),
@@ -496,7 +551,7 @@ int main(int argc, char** argv) {
     if (!args.get<bool>("norestore", false)) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
-    const bool doSetGP = gp != 0 && !args.get<bool>("nogp", false);
+    const bool doSetGP = stage3_gp != 0 && !args.get<bool>("nogp", false);
     if (doSetGP) append(setGP);
 
     if (returnToShell) {
@@ -509,7 +564,7 @@ int main(int argc, char** argv) {
         return -1;
     }
 
-    // Add screen flashing, if remaining size allows
+    // Add screen flashing, if remaining size allows, and fastload not enabled
     std::vector<uint32_t> flashScreen = {
         // GP is always 0xa0010ff0. Use this to save an instruction.
         addiu(Reg::A0, Reg::GP, static_cast<uint16_t>((loaderAddr + 16 + payload.size() * 4)) - 0x10ff0),
@@ -524,11 +579,11 @@ int main(int argc, char** argv) {
         0x01ff03ff,  // width, height
     };
 
-    if (payload.size() + flashScreen.size() + gpuWords.size() <= 32) {
+    if (!args.get<bool>("fastload", false) && (payload.size() + flashScreen.size() + gpuWords.size() <= 32)) {
         printf("Adding screen flashing in initial loader\n");
         payload.insert(payload.begin() + flashScreenIndex, flashScreen.begin(), flashScreen.end());
         payload.insert(payload.end(), gpuWords.begin(), gpuWords.end());
-    } else {
+    } else if (!args.get<bool>("fastload", false)) {
         printf("Not enough space to add screen flashing in initial loader\n");
     }
 
@@ -547,9 +602,7 @@ int main(int argc, char** argv) {
         return -1;
     }
     // Otherwise, make the checksum bad.
-    if (crc == 0) {
-        out[0x87f] = 0xCD;
-    }
+    out[0x87f] = ~crc;
     unsigned o = 0;
     for (auto p : payload) {
         out[0x800 + o++] = p & 0xff;
