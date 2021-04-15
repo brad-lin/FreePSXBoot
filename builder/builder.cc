@@ -434,7 +434,7 @@ int main(int argc, char** argv) {
     std::vector<uint32_t> disableInterrupts = {
         // disabling all interrupts except for memory card
         addiu(Reg::V0, Reg::R0, 128),
-        lui(Reg::V1, 0x1f00),
+        lui(Reg::V1, 0x1f80),
         sw(Reg::V0, 0x1074, Reg::V1),
     };
 

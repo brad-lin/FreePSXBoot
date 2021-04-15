@@ -1,4 +1,6 @@
-all:
+all: builder
+
+builder: builder.cc
 	$(CXX) -o builder builder.cc -std=c++17 -I.
 
 regen: bin2c stage2/stage2.bin
