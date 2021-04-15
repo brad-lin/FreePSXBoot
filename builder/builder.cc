@@ -7,6 +7,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
+#include <stdexcept>
+#include <sstream>
 
 #include "flags.h"
 #include "stage2-bin.h"
@@ -60,36 +62,51 @@ typedef std::pair<uint32_t, uint32_t> BIOSKey;
 
 static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
     // Overwrite allow_new_card function pointer
-    {{0x20, 0x19950510}, {0x801ffcb8, 0x802009b4, 0x4ccc, 0xbe48}},
-    {{0x21, 0x19950717}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{0x22, 0x19951204}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{0x30, 0x19961118}, {0x801ffcc8, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{0x30, 0x19970106}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
+    {{20, 19950510}, {0x801ffcb8, 0x802009b4, 0x4ccc, 0xbe48}},
+    {{21, 19950717}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
+    {{22, 19951204}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
+    {{30, 19961118}, {0x801ffcc8, 0x802009b4, 0x4d3c, 0xbe48}},
+    {{30, 19970106}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
     // Overwrite "jal set_card_auto_format", called right after buInit
-    {{0x41, 0x19971216}, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
-    {{0x44, 0x20000324}, {0x801ffcc0, 0x80232520, 0x0c01a370, 0x0c082f92}},
-    {{0x45, 0x20000525}, {0x801ffcc0, 0x80232530, 0x0c01a374, 0x0c082f92}},
+    {{41, 19971216}, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
+    {{44, 20000324}, {0x801ffcc0, 0x80232520, 0x0c01a370, 0x0c082f92}},
+    {{45, 20000525}, {0x801ffcc0, 0x80232530, 0x0c01a374, 0x0c082f92}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
 static std::unordered_map<uint32_t, BIOSKey> modelToBios {
-    {5001, {0x30, 0x19961118}},
-    {5501, {0x30, 0x19961118}},
-    {5502, {0x30, 0x19970106}},
-    {5503, {0x30, 0x19961118}},
-    {5552, {0x30, 0x19970106}},
-    {7001, {0x41, 0x19971216}},
-    {7002, {0x41, 0x19971216}},
-    {7003, {0x30, 0x19961118}},
-    {7500, {0x41, 0x19971216}},
-    {7501, {0x41, 0x19971216}},
-    {7502, {0x41, 0x19971216}},
-    {7503, {0x41, 0x19971216}},
-    {9001, {0x41, 0x19971216}},
-    {9002, {0x41, 0x19971216}},
-    {9003, {0x41, 0x19971216}},
-    { 101, {0x45, 0x20000525}},
+    {5001, {30, 19961118}},
+    {5501, {30, 19961118}},
+    {5502, {30, 19970106}},
+    {5503, {30, 19961118}},
+    {5552, {30, 19970106}},
+    {7001, {41, 19971216}},
+    {7002, {41, 19971216}},
+    {7003, {30, 19961118}},
+    {7500, {41, 19971216}},
+    {7501, {41, 19971216}},
+    {7502, {41, 19971216}},
+    {7503, {41, 19971216}},
+    {9001, {41, 19971216}},
+    {9002, {41, 19971216}},
+    {9003, {41, 19971216}},
+    { 101, {45, 20000525}},
     // 102 can be either 4.4 or 4.5
+};
+
+// Contains all the settings needed to create a memory card image.
+struct ImageSettings {
+    ExploitSettings exploitSettings;
+    std::string inputFileName;
+    std::string outputFileName;
+    bool fastload;
+    uint32_t stage3_tload;
+    bool returnToShell;
+    bool noInterrupts;
+    bool restoreOriginalValue;
+    bool noGP;
+    bool backwards;
+    bool useDeletedEntries;
 };
 
 static void banner() {
@@ -138,6 +155,7 @@ static void usage() {
     printf("-bw       load binary backwards (start with last frame; saves 1 payload instruction)\n");
     printf("-deleted  use deleted fake entries\n");
     printf("-fastload use fastload method\n");
+    printf("-all      generate images for all supported BIOS versions\n");
 }
 
 static uint32_t getU32(const uint8_t* ptr) {
@@ -175,124 +193,12 @@ static int16_t getLO(uint32_t v) {
     return ret;
 }
 
-int main(int argc, char** argv) {
-    banner();
+static std::string biosVersionToString(uint32_t version) {
+    return std::to_string(version / 10) + "." + std::to_string(version % 10);
+}
 
-    const flags::args args(argc, argv);
-
-    auto modelVersionStr = args.get<std::string>("model");
-    auto biosVersionStr = args.get<std::string>("bios");
-    auto baseStr = args.get<std::string>("base");
-    auto vectorStr = args.get<std::string>("vector");
-    auto oldAddrStr = args.get<std::string>("old");
-    auto newAddrStr = args.get<std::string>("new");
-    auto inName = args.get<std::string>("in");
-    auto outName = args.get<std::string>("out");
-    auto tloadStr = args.get<std::string>("tload");
-
-    const bool modelOrBiosPresent = modelVersionStr.has_value() || biosVersionStr.has_value();
-    const bool anyExpertArgPresent =
-        baseStr.has_value() || vectorStr.has_value() || oldAddrStr.has_value() || newAddrStr.has_value();
-    const bool allExpertArgsPresent =
-        baseStr.has_value() && vectorStr.has_value() && oldAddrStr.has_value() && newAddrStr.has_value();
-    // Check in and out presence
-    if (!inName.has_value() || !outName.has_value()) {
-        usage();
-        return -1;
-    }
-    // Check that none or all expert args are present
-    if (anyExpertArgPresent && !allExpertArgsPresent) {
-        usage();
-        return -1;
-    }
-    // Check that model version xor expert args are used
-    if (modelOrBiosPresent && anyExpertArgPresent) {
-        usage();
-        return -1;
-    }
-
-    uint32_t modelVersion = 0;
-    uint32_t biosVersion = 0;
-    uint32_t base;
-    uint32_t vector;
-    uint32_t oldAddr;
-    uint32_t newAddr;
-    uint32_t stage3_tload = 0;
-
-    const char* argname = nullptr;
-    try {
-        if (modelVersionStr.has_value()) {
-            argname = "model";
-            modelVersion = std::stoul(modelVersionStr.value(), nullptr, 0);
-        } else if (biosVersionStr.has_value()) {
-            argname = "bios";
-            biosVersion = (biosVersionStr->at(0) - '0') << 4;
-            biosVersion += biosVersionStr->at(2) - '0';
-        } else {
-            argname = "base";
-            base = std::stoul(baseStr.value(), nullptr, 0);
-            argname = "vector";
-            vector = std::stoul(vectorStr.value(), nullptr, 0);
-            argname = "oldAddr";
-            oldAddr = std::stoul(oldAddrStr.value(), nullptr, 0);
-            argname = "newAddr";
-            newAddr = std::stoul(newAddrStr.value(), nullptr, 0);
-        }
-        if (tloadStr.has_value()) {
-            argname = "tload";
-            stage3_tload = std::stoul(tloadStr.value(), nullptr, 0);
-        }
-    } catch (...) {
-        printf("Error parsing argument %s\n", argname);
-        return -1;
-    }
-
-    struct ExploitSettings exploitSettings;
-    if (modelVersion != 0) {
-        auto it = modelToBios.find(modelVersion);
-        if (it == modelToBios.end()) {
-            printf("Unsupported model %u. Supported models are:\n", modelVersion);
-            for (const auto& it : modelToBios) {
-                printf("%u ", it.first);
-            }
-            printf("\n");
-            return -1;
-        }
-        exploitSettings = biosExploitSettings.at(it->second);
-        printf("Using exploit settings for model %u\n", modelVersion);
-    } else if (biosVersion != 0) {
-        bool found = false;
-        for (const auto& it : biosExploitSettings) {
-            if (it.first.first == biosVersion) {
-                exploitSettings = it.second;
-                found = true;
-                printf("Using exploit settings for BIOS %02x\n", biosVersion);
-                break;
-            }
-        }
-        if (!found) {
-            printf("Unsupported BIOS %x.%x. Supported BIOS are:\n", biosVersion >> 4, biosVersion & 0xF);
-            for (const auto& it : biosExploitSettings) {
-                const auto& curVersion = it.first.first;
-                printf("%x.%x ", curVersion >> 4, curVersion & 0xF);
-            }
-            printf("\n");
-            return -1;
-        }
-    } else {
-        exploitSettings.stackBase = base;
-        exploitSettings.addressToModify = vector;
-        exploitSettings.originalValue = oldAddr;
-        exploitSettings.newValue = newAddr;
-    }
-
-    if (!exploitSettings.valid()) {
-        printf(
-            "Exploit settings are not valid; either too many slots are needed, or the address to modify is out of "
-            "range.\n");
-        return -1;
-    }
-
+static void createImage(ImageSettings settings) {
+    const ExploitSettings& exploitSettings = settings.exploitSettings;
     static std::array<uint8_t, 128 * 1024> out;
     memset(out.data(), 0, out.size());
     out[0x0000] = 'M';
@@ -306,7 +212,7 @@ int main(int argc, char** argv) {
         uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
         // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
         // If it fails, change to 0xA1.
-        out[offset] = args.get<bool>("deleted", false) ? 0xa1 : 0x51;
+        out[offset] = settings.useDeletedEntries ? 0xa1 : 0x51;
 
         out[offset + 4] = fileSize & 0xff;
         fileSize >>= 8;
@@ -339,10 +245,9 @@ int main(int argc, char** argv) {
         out[offset + 0x7f] = crc;
     }
 
-    FILE* inFile = fopen(inName.value().c_str(), "rb");
+    FILE* inFile = fopen(settings.inputFileName.c_str(), "rb");
     if (!inFile) {
-        printf("Failed to open input file %s\n", inName.value().c_str());
-        return -1;
+        throw std::runtime_error("Failed to open input file " + settings.inputFileName);
     }
 
     fseek(inFile, 0, SEEK_END);
@@ -351,14 +256,13 @@ int main(int argc, char** argv) {
     fseek(inFile, 0, SEEK_SET);
     auto n = fread(in.data(), in.size(), 1, inFile);
     if (n != 1) {
-        printf("Failed to read input file %s\n", inName.value().c_str());
-        return -1;
+        throw std::runtime_error("Failed to read input file " + settings.inputFileName);
     }
     fclose(inFile);
 
-    uint32_t stage3_tsize = in.size();
+    uint32_t stage3_tsize = static_cast<uint32_t>(in.size());
     uint32_t stage3_gp = 0;
-    uint32_t stage3_pc = stage3_tload;
+    uint32_t stage3_pc = settings.stage3_tload;
     uint32_t stage3_sp = 0;
 
     uint8_t* payloadPtr = in.data();
@@ -366,61 +270,60 @@ int main(int argc, char** argv) {
     if (memcmp(in.data(), "PS-X EXE", 8) == 0) {
         stage3_pc = getU32(in.data() + 0x10);
         stage3_gp = getU32(in.data() + 0x14);
-        stage3_tload = getU32(in.data() + 0x18);
+        settings.stage3_tload = getU32(in.data() + 0x18);
         stage3_tsize = getU32(in.data() + 0x1c);
         stage3_sp = getU32(in.data() + 0x30);
         stage3_sp += getU32(in.data() + 0x34);
         payloadPtr = in.data() + 2048;
     } else {
-        if (!tloadStr.has_value()) {
-            printf("Raw binary and no tload argument.\n");
-            usage();
-            return -1;
+        if (settings.stage3_tload == 0) {
+            throw std::runtime_error("Raw binary and no tload argument.");
         }
     }
 
-    uint32_t stage2_tload = stage3_tload;
+    uint32_t stage2_tload = settings.stage3_tload;
     uint32_t stage2_pc = stage3_pc;
     uint32_t stage2_tsize = stage3_tsize;
 
-    if (args.get<bool>("fastload", false)) {
+    if (settings.fastload) {
         stage2_tload = 0x801a0000;
         stage2_pc = 0x801a0000;
         stage2_tsize = sizeof(stage2);
 
         uint32_t stage2_end = stage2_tload + stage2_tsize;
-        uint32_t stage3_end = stage3_tload + stage3_tsize;
+        uint32_t stage3_end = settings.stage3_tload + stage3_tsize;
 
-        if (((stage3_tload <= stage2_end) && (stage2_end <= stage3_end)) ||
-            ((stage3_tload <= stage2_tload) && (stage2_tload <= stage3_end))) {
-            printf("Stage2 and stage3 payloads are intersecting.\n");
-            printf("Stage2: 0x%08x - 0x%08x\n", stage2_tload, stage2_end);
-            printf("Stage3: 0x%08x - 0x%08x\n", stage3_tload, stage3_end);
-            return -1;
+        if (((settings.stage3_tload <= stage2_end) && (stage2_end <= stage3_end)) ||
+            ((settings.stage3_tload <= stage2_tload) && (stage2_tload <= stage3_end))) {
+            std::ostringstream error;
+            error << "Stage2 and stage3 payloads are intersecting." << std::endl;
+            error << "Stage2: 0x" << std::hex << stage2_tload << " - 0x" << stage2_end << std::endl;
+            error << "Stage3: 0x" << std::hex << settings.stage3_tload << " - 0x" << stage3_end << std::endl;
+            throw std::runtime_error(error.str());
         }
     }
 
     constexpr unsigned firstUsableFrame = 64;
-    const bool backwards = args.get<bool>("bw", false);
+    const bool backwards = settings.backwards;
 
     if (stage3_sp == 0) stage3_sp = 0x801ffff0;
     unsigned stage2_frames = (stage2_tsize + 127) >> 7;
     unsigned stage3_frames = (stage3_tsize + 127) >> 7;
     constexpr unsigned availableFrames = ((128 * 1024) >> 7) - firstUsableFrame;
-    if (args.get<bool>("fastload", false)) {
+    if (settings.fastload) {
         if ((stage2_frames + stage3_frames + 1) > availableFrames) {
-            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
-            return -1;
+            throw std::runtime_error("Payload binary too big. Maximum = " + std::to_string(availableFrames * 128) +
+                                     " bytes");
         }
         memcpy(out.data() + firstUsableFrame * 128, stage2, stage2_tsize);
-        uint8_t * configPtr = out.data() + (firstUsableFrame + stage2_frames) * 128;
+        uint8_t* configPtr = out.data() + (firstUsableFrame + stage2_frames) * 128;
         putU32(configPtr, stage3_pc);
         configPtr += 4;
         putU32(configPtr, stage3_gp);
         configPtr += 4;
         putU32(configPtr, stage3_sp);
         configPtr += 4;
-        putU32(configPtr, stage3_tload);
+        putU32(configPtr, settings.stage3_tload);
         configPtr += 4;
         putU32(configPtr, stage3_frames);
         configPtr += 4;
@@ -428,8 +331,8 @@ int main(int argc, char** argv) {
         memcpy(out.data() + (firstUsableFrame + stage2_frames + 1) * 128, payloadPtr, stage3_tsize);
     } else {
         if (stage2_frames > availableFrames) {
-            printf("Payload binary too big. Maximum = %i bytes\n", availableFrames * 128);
-            return -1;
+            throw std::runtime_error("Payload binary too big. Maximum = " + std::to_string(availableFrames * 128) +
+                                     " bytes");
         }
         memcpy(out.data() + firstUsableFrame * 128, payloadPtr, stage2_tsize);
     }
@@ -546,15 +449,15 @@ int main(int argc, char** argv) {
     auto append = [&payload](std::vector<uint32_t>& block) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
-    const bool returnToShell = args.get<bool>("return", false);
-    if (args.get<bool>("noint", false)) append(disableInterrupts);
+    const bool returnToShell = settings.returnToShell;
+    if (settings.noInterrupts) append(disableInterrupts);
     if (returnToShell) append(saveRegisters);
     // If the payload can hold the code to flash the screen, it will be placed here
     const std::size_t flashScreenIndex = payload.size();
-    if (!args.get<bool>("norestore", false)) append(restoreValue);
+    if (settings.restoreOriginalValue) append(restoreValue);
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
-    const bool doSetGP = stage3_gp != 0 && !args.get<bool>("nogp", false);
+    const bool doSetGP = stage3_gp != 0 && !settings.noGP;
     if (doSetGP) append(setGP);
 
     if (returnToShell) {
@@ -563,8 +466,8 @@ int main(int argc, char** argv) {
         append(bootstrapNoReturn);
     }
     if (payload.size() > 32) {
-        printf("Payload is too big, using %i instructions out of 32.\n", (int)payload.size());
-        return -1;
+        throw std::runtime_error("Payload is too big, using " + std::to_string(payload.size()) +
+                                 " instructions out of 32.");
     }
 
     // Add screen flashing, if remaining size allows, and fastload not enabled
@@ -582,11 +485,11 @@ int main(int argc, char** argv) {
         0x01ff03ff,  // width, height
     };
 
-    if (!args.get<bool>("fastload", false) && (payload.size() + flashScreen.size() + gpuWords.size() <= 32)) {
+    if (!settings.fastload && (payload.size() + flashScreen.size() + gpuWords.size() <= 32)) {
         printf("Adding screen flashing in initial loader\n");
         payload.insert(payload.begin() + flashScreenIndex, flashScreen.begin(), flashScreen.end());
         payload.insert(payload.end(), gpuWords.begin(), gpuWords.end());
-    } else if (!args.get<bool>("fastload", false)) {
+    } else if (!settings.fastload) {
         printf("Not enough space to add screen flashing in initial loader\n");
     }
 
@@ -601,8 +504,7 @@ int main(int argc, char** argv) {
     }
     // If payload has 128 bytes, check that the checksum is bad
     if (payloadSize == 128 && crc == payloadBytes[127]) {
-        printf("Payload is 128 bytes and its checksum is not bad.\n");
-        return -1;
+        throw std::runtime_error("Payload is 128 bytes and its checksum is not bad.");
     }
     // Otherwise, make the checksum bad.
     out[0x87f] = ~crc;
@@ -618,14 +520,186 @@ int main(int argc, char** argv) {
         p >>= 8;
     }
 
-    FILE* outFile = fopen(outName.value().c_str(), "wb");
+    FILE* outFile = fopen(settings.outputFileName.c_str(), "wb");
     if (!outFile) {
-        printf("Failed to open output file %s\n", outName.value().c_str());
-        return -1;
+        throw std::runtime_error("Failed to open output file " + settings.outputFileName);
     }
 
     fwrite(out.data(), out.size(), 1, outFile);
     fclose(outFile);
+}
+
+int main(int argc, char** argv) {
+    banner();
+
+    const flags::args args(argc, argv);
+
+    auto modelVersionStr = args.get<std::string>("model");
+    auto biosVersionStr = args.get<std::string>("bios");
+    auto baseStr = args.get<std::string>("base");
+    auto vectorStr = args.get<std::string>("vector");
+    auto oldAddrStr = args.get<std::string>("old");
+    auto newAddrStr = args.get<std::string>("new");
+    auto inName = args.get<std::string>("in");
+    auto outName = args.get<std::string>("out");
+    auto tloadStr = args.get<std::string>("tload");
+
+    const bool generateAll = args.get<bool>("all", false);
+    const bool modelOrBiosPresent = modelVersionStr.has_value() || biosVersionStr.has_value();
+    const bool anyExpertArgPresent =
+        baseStr.has_value() || vectorStr.has_value() || oldAddrStr.has_value() || newAddrStr.has_value();
+    const bool allExpertArgsPresent =
+        baseStr.has_value() && vectorStr.has_value() && oldAddrStr.has_value() && newAddrStr.has_value();
+    // Check in and out presence
+    if (!inName.has_value() || !outName.has_value()) {
+        usage();
+        return -1;
+    }
+    // Check that none or all expert args are present
+    if (anyExpertArgPresent && !allExpertArgsPresent) {
+        usage();
+        return -1;
+    }
+    // Check that model version xor expert args are used
+    if ((generateAll || modelOrBiosPresent) && anyExpertArgPresent) {
+        usage();
+        return -1;
+    }
+
+    uint32_t modelVersion = 0;
+    uint32_t biosVersion = 0;
+    uint32_t base;
+    uint32_t vector;
+    uint32_t oldAddr;
+    uint32_t newAddr;
+    uint32_t stage3_tload = 0;
+
+    const char* argname = nullptr;
+    try {
+        if (modelVersionStr.has_value()) {
+            argname = "model";
+            modelVersion = std::stoul(modelVersionStr.value(), nullptr, 0);
+        } else if (biosVersionStr.has_value()) {
+            argname = "bios";
+            biosVersion = (biosVersionStr->at(0) - '0') << 4;
+            biosVersion += biosVersionStr->at(2) - '0';
+        } else if (!generateAll) {
+            argname = "base";
+            base = std::stoul(baseStr.value(), nullptr, 0);
+            argname = "vector";
+            vector = std::stoul(vectorStr.value(), nullptr, 0);
+            argname = "oldAddr";
+            oldAddr = std::stoul(oldAddrStr.value(), nullptr, 0);
+            argname = "newAddr";
+            newAddr = std::stoul(newAddrStr.value(), nullptr, 0);
+        }
+        if (tloadStr.has_value()) {
+            argname = "tload";
+            stage3_tload = std::stoul(tloadStr.value(), nullptr, 0);
+        }
+    } catch (...) {
+        printf("Error parsing argument %s\n", argname);
+        return -1;
+    }
+
+    struct ExploitSettings exploitSettings;
+    if (!generateAll) {
+        if (modelVersion != 0) {
+            auto it = modelToBios.find(modelVersion);
+            if (it == modelToBios.end()) {
+                printf("Unsupported model %u. Supported models are:\n", modelVersion);
+                for (const auto& it : modelToBios) {
+                    printf("%u ", it.first);
+                }
+                printf("\n");
+                return -1;
+            }
+            exploitSettings = biosExploitSettings.at(it->second);
+            printf("Using exploit settings for model %u\n", modelVersion);
+        } else if (biosVersion != 0) {
+            bool found = false;
+            for (const auto& it : biosExploitSettings) {
+                if (it.first.first == biosVersion) {
+                    exploitSettings = it.second;
+                    found = true;
+                    printf("Using exploit settings for BIOS %d\n", biosVersion);
+                    break;
+                }
+            }
+            if (!found) {
+                printf("Unsupported BIOS %s. Supported BIOS are:\n", biosVersionToString(biosVersion).c_str());
+                for (const auto& it : biosExploitSettings) {
+                    const auto& curVersion = it.first.first;
+                    printf("%s ", biosVersionToString(curVersion).c_str());
+                }
+                printf("\n");
+                return -1;
+            }
+        } else {
+            exploitSettings.stackBase = base;
+            exploitSettings.addressToModify = vector;
+            exploitSettings.originalValue = oldAddr;
+            exploitSettings.newValue = newAddr;
+        }
+
+        if (!exploitSettings.valid()) {
+            printf(
+                "Exploit settings are not valid; either too many slots are needed, or the address to modify is out of "
+                "range.\n");
+            return -1;
+        }
+    }
+
+    ImageSettings imageSettings;
+    imageSettings.inputFileName = inName.value();
+    imageSettings.outputFileName = outName.value();
+    imageSettings.fastload = args.get<bool>("fastload", false);
+    imageSettings.stage3_tload = stage3_tload;
+    imageSettings.returnToShell = args.get<bool>("return", false);
+    imageSettings.noInterrupts = args.get<bool>("noint", false);
+    imageSettings.restoreOriginalValue = !args.get<bool>("norestore", false);
+    imageSettings.noGP = args.get<bool>("nogp", false);
+    imageSettings.backwards = args.get<bool>("bw", false);
+    imageSettings.useDeletedEntries = args.get<bool>("deleted", false);
+
+    std::map<std::string, ExploitSettings> exploitSettingsToUse;
+    if (generateAll) {
+        for (const auto& it : biosExploitSettings) {
+            uint32_t version = it.first.first;
+            std::string suffix = biosVersionToString(it.first.first);
+            if (exploitSettingsToUse.find(suffix) != exploitSettingsToUse.end()) {
+                suffix += '-' + std::to_string(it.first.second);
+            }
+            exploitSettingsToUse[std::move(suffix)] = it.second;
+        }
+    } else {
+        exploitSettingsToUse[std::string()] = exploitSettings;
+    }
+
+    for (const auto& currentExploitSettings : exploitSettingsToUse) {
+        try {
+            imageSettings.exploitSettings = currentExploitSettings.second;
+            if (generateAll) {
+                // Check if $ character is in output file name, and replace it with BIOS version
+                auto it = imageSettings.outputFileName.find('$');
+                if (it != std::string::npos) {
+                    std::string newName = imageSettings.outputFileName.substr(0, it);
+                    newName += currentExploitSettings.first;
+                    newName += imageSettings.outputFileName.substr(it + 1);
+                    imageSettings.outputFileName = std::move(newName);
+                } else {
+                    // Otherwise, append BIOS version
+                    imageSettings.outputFileName += "-" + currentExploitSettings.first;
+                }
+            }
+            createImage(imageSettings);
+            printf("Created %s\n", imageSettings.outputFileName.c_str());
+            imageSettings.outputFileName = outName.value();
+        } catch (const std::exception& ex) {
+            printf("Failed to create memory card image: %s\n", ex.what());
+            return -1;
+        }
+    }
 
     return 0;
 }

@@ -54,47 +54,22 @@ The earlier version of this exploit relies on uninitialized memory in kernel spa
 [Demonstration](https://www.youtube.com/watch?v=29DI-N45V40)
 
 ## Downloads
-These images are pre-built with Unirom. There are two versions: standard, which has ~30 seconds load time, and reduced, which has ~20 seconds load time.
+These images are pre-built with Unirom.
 
-There are different downloads for different console versions. Please download the correct ROM for your model of PlayStation. If a version is missing, it hasn't been added yet.
+There are different downloads for different console versions. Please download the correct ROM for your model and BIOS version. If a model or BIOS version is missing, it means it is not supported yet.
 
-As more reliable versions of the exploit are developed, the images are updated.
+As more reliable versions of the exploit are developed, the images are updated. Older versions can be found in the `images` directory.
 
-Links marked with **old** are images which cannot load games yet.
-
-| Model     | BIOS Version | 100% reliable exploit? | Standard Download Link | Fastload Download Link |
-|-----------|--------------|------------------------|------------------------|------------------------|
-| SCPH-1000 | 1.0          | N/A | WIP | WIP |
-| SCPH-1001 | 2.2          | No | [Old](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | |
-| SCPH-1002 | 2.0/2.1/2.2  | No | [Old](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | |
-| SCPH-3000 | 1.1          | N/A | WIP | WIP |
-| SCPH-3500 | 2.1          | No | [Old](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | |
-| SCPH-5001 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5001-5501-5503-7003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5001-5501-5503-7003.mcd) |
-| SCPH-5500 | 3.0          | No | [Old](exploit/freepsxboot-unirom-standard-bios3.x.mcd) | |
-| SCPH-5501 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5001-5501-5503-7003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5001-5501-5503-7003.mcd) |
-| SCPH-5502 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5502-5552.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5502-5552.mcd) |
-| SCPH-5503 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5001-5501-5503-7003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5001-5501-5503-7003.mcd) |
-| SCPH-5552 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5502-5552.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5502-5552.mcd) |
-| SCPH-5903 | 2.2          | No | [Old](exploit/freepsxboot-unirom-standard-bios3.x.mcd) |
-| SCPH-7000 | 4.0          | No | [Old](exploit/freepsxboot-unirom-standard-bios4.x.mcd) |
-| SCPH-7000W | 4.1         | No | [Old](exploit/freepsxboot-unirom-standard-bios4.x.mcd) |
-| SCPH-7001 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-7002 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-7003 | 3.0          | No | [20210412](images/freepsxboot-unirom-20210412-5001-5501-5503-7003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-5001-5501-5503-7003.mcd) |
-| SCPH-7500 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-7501 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-7502 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-7503 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-9000 | 4.0          | No | [Old](exploit/freepsxboot-unirom-standard-bios4.x.mcd) | |
-| SCPH-9001 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-9002 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-9003 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
-| SCPH-100  | 4.3          | No | [Old](exploit/freepsxboot-unirom-standard-psone.mcd) | |
-| SCPH-101  | 4.4          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.4.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.4.mcd) |
-| SCPH-101  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-101.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-101.mcd) |
-| SCPH-102  | 4.4          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.4.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.4.mcd) |
-| SCPH-102  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.5.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.5.mcd) |
-| SCPH-103  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.5.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.5.mcd) |
+| BIOS version/date | Models | 100% reliable exploit? | Download Link |
+|-------------------|--------|------------------------|---------------|
+| 2.0 (1995-05-10)  | SCPH-1002 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.0.mcd) |
+| 2.1 (1995-07-17)  | SCPH-1002<br/>SCPH-3500 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.1.mcd) |
+| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5903 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.2.mcd) |
+| 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0.mcd) |
+| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5502 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0-19970106.mcd) |
+| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.1.mcd) |
+| 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.4.mcd) |
+| 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.5.mcd) |
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 
