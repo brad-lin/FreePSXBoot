@@ -176,7 +176,13 @@ union Header {
 };
 
 static inline __attribute__((noreturn)) void jump(union Header* header) {
-    __asm__ volatile("lw $ra, 0(%0)\nlw $gp, 4(%0)\nlw $sp, 8(%0)\nli $t1, 0x44\nj 0xa0\n" : : "r"(header));
+    register int a0 asm("a0") = 0;
+    register int a1 asm("a1") = 0;
+    register int a2 asm("a2") = 0xf12ee175;
+    register int a3 asm("a3") = 0xec55b007;
+    __asm__ volatile("lw $ra, 0(%0)\nlw $gp, 4(%0)\nlw $sp, 8(%0)\nli $t1, 0x44\nj 0xa0\n"
+                     :
+                     : "r"(header), "r"(a0), "r"(a1), "r"(a2), "r"(a3));
 }
 
 __attribute__((noreturn)) void main() {
