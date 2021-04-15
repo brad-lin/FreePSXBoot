@@ -42,8 +42,9 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * See the table below for more details and download links.
 
 ## Changelog
-2021-04-12: New version of Unirom, able to load games. Huge thanks to the psxdev contributors.
-2021-04-11: 100% reliable exploit for the SCPH-7002, SCPH-7502 and SCPH-9002.
+
+* 2021-04-12: New version of Unirom, able to load games. Huge thanks to the psxdev contributors.
+* 2021-04-11: 100% reliable exploit for the SCPH-7002, SCPH-7502 and SCPH-9002.
 
 ## Caveat
 
