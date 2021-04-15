@@ -31,7 +31,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 # Restoring the memory card
 
 * The most reliable way is to use [Memcarduino](https://github.com/ShendoXT/memcarduino) and its FORMAT option.
-* Some games that have a save file manager (shows the contents of the memory card before saving) built into them, like *OddWorld: Abe's Oddysee* for example, can be used to overwrite FreePSXBoot when saving progress.
+* Some games that have a save file manager (shows the contents of the memory card before saving) built into them, like *OddWorld: Abe's Oddysee* and *Cool Boarders 4 (suffers from a caveat that keeps the game from loading the memory card with certain exploit versions)* for example, can be used to overwrite FreePSXBoot when saving progress.
 * We plan to bundle a complete version of Unirom in the memory card images in the future, with the ability to format memory cards.
 
 # Supported models
