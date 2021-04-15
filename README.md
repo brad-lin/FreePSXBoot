@@ -90,9 +90,11 @@ Links marked with **old** are images which cannot load games yet.
 | SCPH-9002 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
 | SCPH-9003 | 4.1          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-7001-7002-7500-7501-7502-7503-9001-9002-9003.mcd) |
 | SCPH-100  | 4.3          | No | [Old](exploit/freepsxboot-unirom-standard-psone.mcd) | |
+| SCPH-101  | 4.4          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.4.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.4.mcd) |
 | SCPH-101  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-101.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-101.mcd) |
 | SCPH-102  | 4.4          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.4.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.4.mcd) |
 | SCPH-102  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.5.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.5.mcd) |
+| SCPH-103  | 4.5          | **Yes** | [20210412](images/freepsxboot-unirom-20210412-102_4.5.mcd) | [20210414](images/freepsxboot-unirom-fastload-20210414-102_4.5.mcd) |
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 
