@@ -1,6 +1,8 @@
 # FreePSXBoot
 Exploit allowing to load arbitrary code on the PSX (i.e. PlayStation 1) using only a memory card (no game needed).
 
+In other words, it's a softmod which requires a memory card, and a way to write raw data to it.
+
 To use it, you will need a way to copy **full memory card images** (not individual files) to a memory card. Some possibilities are:
 
 * A PS2 and the software Memory Card Annihilator v2 (use "Restore MC image")
@@ -67,7 +69,7 @@ As more reliable versions of the exploit are developed, the images are updated. 
 | 2.1 (1995-07-17)  | SCPH-1002<br/>SCPH-3500 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.1.mcd) |
 | 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5903 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.2.mcd) |
 | 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0.mcd) |
-| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5502 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0-19970106.mcd) |
+| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0-19970106.mcd) |
 | 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.1.mcd) |
 | 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.4.mcd) |
 | 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.5.mcd) |
