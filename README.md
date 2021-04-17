@@ -18,7 +18,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 * Because the exploit has **corrupt Memory Card filesystem on purpose** for it to run, your card will become **unusable for normal operations**. That is, you **won't be able to use this card for saving and loading game saves** and **it will cause crashes on your PS1 or your PS2 console** *(if you have any)*.
 
-* Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, then it will also crash.
+* Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, then it will also crash. [Memcarduino](https://github.com/ShendoXT/memcarduino), [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1), or using the [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/) would currently be safe bets.
 
 # Usage
 
