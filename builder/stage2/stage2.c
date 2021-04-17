@@ -7,7 +7,7 @@
 
 #ifdef DEBUG
 #define printf ramsyscall_printf
-#define hexdump hexdimp_impl
+#define hexdump hexdump_impl
 #else
 #define printf(...)
 #define hexdump(...)
