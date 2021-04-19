@@ -38,13 +38,17 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 # Supported models
 
-* All models are supported except SCPH-1000 and SCPH-3000, which will probably be supported in the future.
-* Some models use a 100% reliable exploit, other models use an earlier version of the exploit, which depends on uninitialized memory and is therefore not 100% reliable (see caveat below).
-* Certain PSOne consoles appear to not support the exploit in its entirity. We are currently checking on the issue to ensure that it is fully exploitable.
+* All models are supported except SCPH-3000, which will probably be supported in the future.
+* As of version 20210419, the exploit is 100% reliable on all supported models.
+* Certain PSOne consoles appear to not support the exploit in its entirety. We are currently checking on the issue to ensure that it is fully exploitable.
 * See the table below for more details and download links.
 
 ## Changelog
 
+* 2021-04-19: Added support for BIOS 1.0 and 4.3 (SCPH-1000 and SCPH-100 respectively)
+* 2021-04-19: Exploit 100% reliable for every supported BIOS; now hooks an ISR (thanks sickle)
+* 2021-04-19: Unirom version updated to 8.0.F
+* 2021-04-14: Exploit uses fastload, which reads the memory card much faster than Sony's code (thanks Nicolas Noble)
 * 2021-04-12: New version of Unirom, able to load games. Huge thanks to the psxdev contributors.
 * 2021-04-11: 100% reliable exploit for the SCPH-7002, SCPH-7502 and SCPH-9002.
 
@@ -65,14 +69,16 @@ As more reliable versions of the exploit are developed, the images are updated. 
 
 | BIOS version/date | Models | 100% reliable exploit? | Download Link |
 |-------------------|--------|------------------------|---------------|
-| 2.0 (1995-05-10)  | SCPH-1002 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.0.mcd) |
-| 2.1 (1995-07-17)  | SCPH-1002<br/>SCPH-3500 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.1.mcd) |
-| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5903 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-2.2.mcd) |
-| 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0.mcd) |
-| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | No | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-3.0-19970106.mcd) |
-| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.1.mcd) |
-| 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.4.mcd) |
-| 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210414](images/freepsxboot-unirom-fastload-20210414-bios-4.5.mcd) |
+| 1.0 (1994-09-22)  | SCPH-1000 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-1.0.mcd) |
+| 2.0 (1995-05-10)  | SCPH-1002 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-2.0.mcd) |
+| 2.1 (1995-07-17)  | SCPH-1002<br/>SCPH-3500 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-2.1.mcd) |
+| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5903 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-2.2.mcd) |
+| 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-3.0.mcd) |
+| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-3.0-19970106.mcd) |
+| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-4.1.mcd) |
+| 4.3 (2000-03-11)  | SCPH-100 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-4.3.mcd) |
+| 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-4.4.mcd) |
+| 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210419](images/freepsxboot-unirom-fastload-20210419-bios-4.5.mcd) |
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 

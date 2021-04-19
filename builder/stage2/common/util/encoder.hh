@@ -150,6 +150,7 @@ constexpr uint32_t jal(uint32_t addr) { return iclass(0b000011) | ((addr >> 2) &
 constexpr uint32_t jalr(Reg src, Reg dst = Reg::RA) { return dstVal(dst) | srcVal(src) | 0b001001; }
 constexpr uint32_t jr(Reg src) { return srcVal(src) | 0b001000; }
 constexpr uint32_t syscall() { return 0b001100; }
+constexpr uint32_t rfe() { return 0x42000010; }
 
 // memory
 constexpr uint32_t lb(Reg tgt, int16_t offset, Reg src) {
