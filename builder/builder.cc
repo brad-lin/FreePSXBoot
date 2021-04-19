@@ -23,23 +23,29 @@ struct ExploitSettings {
     uint32_t addressToModify;
     uint32_t originalValue;
     uint32_t newValue;
+    bool inIsr = false;
+    uint32_t loopsPerIncrement = 2;
+    uint32_t memCardDirEntryIndex = 0;
 
     constexpr static uint32_t maxFileSizeToUse = 0x7fffc000;
-    constexpr static uint32_t maxIncrementPerSlot = 0x1ffff;
 
     uint16_t index() const noexcept { return static_cast<uint16_t>((addressToModify - stackBase) / 4); }
 
     uint32_t difference() const noexcept { return newValue - originalValue; }
 
+    uint32_t maxIncrementPerSlot() const noexcept { return 0x7fffffff / (0x2000 * loopsPerIncrement); }
+
     int nbSlotsNeeded() const noexcept {
         // Each slot allows to increment at most by 0x1ffff.
         const uint32_t diff = difference();
-        int result = (diff / maxIncrementPerSlot);
-        result += (diff % maxIncrementPerSlot) == 0 ? 0 : 1;
+        int result = (diff / maxIncrementPerSlot());
+        result += (diff % maxIncrementPerSlot()) == 0 ? 0 : 1;
         return result;
     }
 
-    uint32_t fileSizeToUseForLastSlot() const noexcept { return (difference() % maxIncrementPerSlot) * 0x4000; }
+    uint32_t fileSizeToUseForLastSlot() const noexcept {
+        return (difference() % maxIncrementPerSlot()) * (0x2000 * loopsPerIncrement);
+    }
 
     bool valid() const noexcept {
         // Index must be <= 0xfffe.
@@ -47,7 +53,9 @@ struct ExploitSettings {
             return false;
         }
         // 15 slots are usable to increment the value.
-        else if (nbSlotsNeeded() > 15) {
+        // However, we count slots usable starting for the mem card dir entry index.
+        // This could be improved by using all the slots even if memCardDirEntryIndex is not 0.
+        else if (memCardDirEntryIndex + nbSlotsNeeded() > 15) {
             return false;
         } else {
             return true;
@@ -57,20 +65,27 @@ struct ExploitSettings {
 
 // A BIOS is identifiend by its version number and date.
 // For example, version 4.1 (1997-12-16).
-// This is used as a key with the format: 0x41, 0x19971216.
+// This is used as a key with the format: 41, 19971216.
 typedef std::pair<uint32_t, uint32_t> BIOSKey;
 
 static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
-    // Overwrite allow_new_card function pointer
-    {{20, 19950510}, {0x801ffcb8, 0x802009b4, 0x4ccc, 0xbe48}},
-    {{21, 19950717}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{22, 19951204}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{30, 19961118}, {0x801ffcc8, 0x802009b4, 0x4d3c, 0xbe48}},
-    {{30, 19970106}, {0x801ffcc0, 0x802009b4, 0x4d3c, 0xbe48}},
-    // Overwrite "jal set_card_auto_format", called right after buInit
-    {{41, 19971216}, {0x801ffcd0, 0x80231f50, 0x0c01a144, 0x0c082f92}},
-    {{44, 20000324}, {0x801ffcc0, 0x80232520, 0x0c01a370, 0x0c082f92}},
-    {{45, 20000525}, {0x801ffcc0, 0x80232530, 0x0c01a374, 0x0c082f92}},
+    // Exploit settings in order:
+    // base of stack array, address to modify, original value, new value,
+    // calls payload from ISR, number of loops per increment, index of directory entry.
+    {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
+    // Disable exploit for BIOS 1.1 for now.
+    // It works, but triggers the payload in the middle of a read of the memcard.
+    // Needs some adaptation of the payload to work.
+    // {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3}},
+    {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3}},
+    {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
+    {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
+    {{30, 19961118}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{30, 19970106}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+    {{41, 19971216}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
+    {{43, 20000311}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{44, 20000324}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{45, 20000525}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
@@ -199,6 +214,10 @@ static std::string biosVersionToString(uint32_t version) {
 
 static void createImage(ImageSettings settings) {
     const ExploitSettings& exploitSettings = settings.exploitSettings;
+    const bool returnToShell = settings.returnToShell;
+    if (returnToShell && exploitSettings.inIsr) {
+        throw std::runtime_error("Payload wants to return to shell, but exploit is in ISR");
+    }
     static std::array<uint8_t, 128 * 1024> out;
     memset(out.data(), 0, out.size());
     out[0x0000] = 'M';
@@ -206,9 +225,10 @@ static void createImage(ImageSettings settings) {
     out[0x007f] = 0x0e;
 
     // Write directory entries (as many as needed)
-    for (int i = 0; i < exploitSettings.nbSlotsNeeded(); i++) {
+    const int startIndex = exploitSettings.memCardDirEntryIndex;
+    for (int i = startIndex; i < startIndex + exploitSettings.nbSlotsNeeded(); i++) {
         const int offset = (i + 1) * 0x80;
-        const bool last = i == exploitSettings.nbSlotsNeeded() - 1;
+        const bool last = i == startIndex + exploitSettings.nbSlotsNeeded() - 1;
         uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
         // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
         // If it fails, change to 0xA1.
@@ -449,12 +469,13 @@ static void createImage(ImageSettings settings) {
     auto append = [&payload](std::vector<uint32_t>& block) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
-    const bool returnToShell = settings.returnToShell;
+
     if (settings.noInterrupts) append(disableInterrupts);
     if (returnToShell) append(saveRegisters);
     // If the payload can hold the code to flash the screen, it will be placed here
     const std::size_t flashScreenIndex = payload.size();
     if (settings.restoreOriginalValue) append(restoreValue);
+    if (settings.exploitSettings.inIsr) payload.push_back(rfe());
     append(loadBinary);
     // as GP is used for relative accessing, unless user-overriden, will be set only if non-zero (aka is used at all)
     const bool doSetGP = stage3_gp != 0 && !settings.noGP;
@@ -581,7 +602,7 @@ int main(int argc, char** argv) {
             modelVersion = std::stoul(modelVersionStr.value(), nullptr, 0);
         } else if (biosVersionStr.has_value()) {
             argname = "bios";
-            biosVersion = (biosVersionStr->at(0) - '0') << 4;
+            biosVersion = (biosVersionStr->at(0) - '0') * 10;
             biosVersion += biosVersionStr->at(2) - '0';
         } else if (!generateAll) {
             argname = "base";
