@@ -39,12 +39,12 @@ static void hexdump_impl(const void* data_, unsigned size) {
 #define WIDTH 512
 #define HEIGHT 240
 
-static void fill(const union Color bg) {
+static void fill(const union Color bg, int16_t width) {
     struct FastFill ff = {
         .c = bg,
         .x = 0,
         .y = 0,
-        .w = WIDTH,
+        .w = width,
         .h = HEIGHT,
     };
     fastFill(&ff);
@@ -210,7 +210,7 @@ __attribute__((noreturn)) void main() {
     setDrawingArea(0, 0, WIDTH, HEIGHT);
     setDrawingOffset(0, 0);
     enableDisplay();
-    fill(c_fgIdle);
+    fill(c_fgIdle, WIDTH);
 
     printf("Resetting SIO0\n");
 
@@ -233,12 +233,17 @@ __attribute__((noreturn)) void main() {
     // parse the memory card starting from frame 64
     // to try and locate our magic header, then to
     // load our stage3
+    uint32_t stage3Frames = 0;
+    uint32_t totalStage3Frames = 0;
+    uint8_t* tload = NULL;
     for (uint32_t frame = 64; frame < 1024; frame++) {
         printf("Reading frame %i, got header = %i\n", frame, gotHeader);
         if (gotHeader) {
-            mcReadFrame(frame, header.tload);
-            header.tload += 128;
-            if (--header.frames == 0) jump(&header);
+            stage3Frames++;
+            fill(c_fgSuccess, 512 * stage3Frames / totalStage3Frames);
+            mcReadFrame(frame, tload);
+            tload += 128;
+            if (stage3Frames == totalStage3Frames) jump(&header);
         } else {
             mcReadFrame(frame, header.buffer);
             hexdump(header.buffer, 128);
@@ -246,13 +251,14 @@ __attribute__((noreturn)) void main() {
             // to save on some rodata space
             if (djbHash(header.signature, SIG_LEN) == c_signatureHash) {
                 gotHeader = 1;
-                fill(c_fgSuccess);
+                totalStage3Frames = header.frames;
+                tload = header.tload;
             }
         }
     }
 
     printf("Error, aborting.\n");
-    fill(c_fgError);
+    fill(c_fgError, WIDTH);
     // this shouldn't happen, but just in case
     while (1)
         ;
