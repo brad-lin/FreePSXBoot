@@ -4,11 +4,11 @@
 
 #include <array>
 #include <map>
+#include <sstream>
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include <stdexcept>
-#include <sstream>
 
 #include "flags.h"
 #include "stage2-bin.h"
@@ -18,6 +18,17 @@ using namespace Mips::Encoder;
 
 constexpr uint32_t loaderAddr = 0xbe48;
 
+enum class ExploitType {
+    Standard,    // One or more directory entries, which change an instruction. The payload loads and runs stage2.
+    MemcardISR,  // Hooks an instruction of the memcard ISR, while it is being read (BIOS 1.1). The payload must be
+                 // stored in the last directory entry (with the correct checksum), and in the first broken sector (with
+                 // a bad checksum). The exploit must complete the current read command before loading stage 2.
+    ICacheFlush,  // The exploit is sensible to icache (BIOS 2.0). To force the icache to be flushed, the reading of the
+                  // directory of the first memory card must be complete, and another memory card must be present in
+                  // slot 2. As a result, the payload must be duplicated in every broken sector entry, with a correct
+                  // checksum. It will trigger when the second memory card starts being read.
+};
+
 struct ExploitSettings {
     uint32_t stackBase;
     uint32_t addressToModify;
@@ -26,6 +37,8 @@ struct ExploitSettings {
     bool inIsr = false;
     uint32_t loopsPerIncrement = 2;
     uint32_t memCardDirEntryIndex = 0;
+    ExploitType type = ExploitType::Standard;
+    int16_t isrBeqDistance = 0;
 
     constexpr static uint32_t maxFileSizeToUse = 0x7fffc000;
 
@@ -68,16 +81,13 @@ struct ExploitSettings {
 // This is used as a key with the format: 41, 19971216.
 typedef std::pair<uint32_t, uint32_t> BIOSKey;
 
-static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
+static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // Exploit settings in order:
     // base of stack array, address to modify, original value, new value,
-    // calls payload from ISR, number of loops per increment, index of directory entry.
+    // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
     {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
-    // Disable exploit for BIOS 1.1 for now.
-    // It works, but triggers the payload in the middle of a read of the memcard.
-    // Needs some adaptation of the payload to work.
-    // {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3}},
-    {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3}},
+    {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
+    {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
     {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{30, 19960909}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2}},
@@ -90,24 +100,12 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
-static std::unordered_map<uint32_t, BIOSKey> modelToBios {    
-    {5001, {30, 19961118}},
-    {5500, {30, 19960909}},
-    {5501, {30, 19961118}},
-    {5502, {30, 19970106}},
-    {5503, {30, 19961118}},
-    {5552, {30, 19970106}},
-    {7001, {41, 19971216}},
-    {7002, {41, 19971216}},
-    {7003, {30, 19961118}},
-    {7500, {41, 19971216}},
-    {7501, {41, 19971216}},
-    {7502, {41, 19971216}},
-    {7503, {41, 19971216}},
-    {9001, {41, 19971216}},
-    {9002, {41, 19971216}},
-    {9003, {41, 19971216}},
-    { 101, {45, 20000525}},
+static std::unordered_map<uint32_t, BIOSKey> modelToBios{
+    {5001, {30, 19961118}}, {5500, {30, 19960909}}, {5501, {30, 19961118}}, {5502, {30, 19970106}},
+    {5503, {30, 19961118}}, {5552, {30, 19970106}}, {7001, {41, 19971216}}, {7002, {41, 19971216}},
+    {7003, {30, 19961118}}, {7500, {41, 19971216}}, {7501, {41, 19971216}}, {7502, {41, 19971216}},
+    {7503, {41, 19971216}}, {9001, {41, 19971216}}, {9002, {41, 19971216}}, {9003, {41, 19971216}},
+    {101, {45, 20000525}},
     // 102 can be either 4.4 or 4.5
 };
 
@@ -197,6 +195,13 @@ static void putU32(uint8_t* ptr, uint32_t d) {
     *ptr++ = d & 0xff;
     d >>= 8;
     *ptr++ = d & 0xff;
+}
+
+static void putU32Vector(uint8_t* ptr, const std::vector<uint32_t>& data) {
+    for (uint32_t word : data) {
+        putU32(ptr, word);
+        ptr += sizeof(uint32_t);
+    }
 }
 
 static int16_t getHI(uint32_t v) {
@@ -376,6 +381,9 @@ static void createImage(ImageSettings settings) {
         addiu(Reg::V0, Reg::V0, getLO(exploitSettings.originalValue)),
         lui(Reg::V1, getHI(exploitSettings.addressToModify)),
         sw(Reg::V0, getLO(exploitSettings.addressToModify), Reg::V1),
+        // flush cache
+        jal(0xa0),
+        addiu(Reg::T1, Reg::R0, 0x44),
     };
 
     unsigned lastLoadAddress = stage2_tload + 128 * (stage2_frames - 1);
@@ -472,6 +480,12 @@ static void createImage(ImageSettings settings) {
         std::copy(begin(block), end(block), std::back_inserter(payload));
     };
 
+    if (settings.exploitSettings.type == ExploitType::MemcardISR) {
+        // Workaround for BIOS 1.1: return to ISR unless read is complete (v0 != 0)
+        payload.push_back(beq(Reg::V0, Reg::R0, settings.exploitSettings.isrBeqDistance));
+        payload.push_back(nop());
+    }
+
     if (settings.noInterrupts) append(disableInterrupts);
     if (returnToShell) append(saveRegisters);
     // If the payload can hold the code to flash the screen, it will be placed here
@@ -525,22 +539,32 @@ static void createImage(ImageSettings settings) {
         crc ^= payloadBytes[crcIndex];
         crcIndex++;
     }
+    // If exploit type is not standard, the checksum must be controllable
+    if (payloadSize == 128 && exploitSettings.type != ExploitType::Standard) {
+        throw std::runtime_error("Payload is 128 bytes but its checksum must be controllable.");
+    }
     // If payload has 128 bytes, check that the checksum is bad
     if (payloadSize == 128 && crc == payloadBytes[127]) {
         throw std::runtime_error("Payload is 128 bytes and its checksum is not bad.");
     }
-    // Otherwise, make the checksum bad.
-    out[0x87f] = ~crc;
-    unsigned o = 0;
-    for (auto p : payload) {
-        out[0x800 + o++] = p & 0xff;
-        p >>= 8;
-        out[0x800 + o++] = p & 0xff;
-        p >>= 8;
-        out[0x800 + o++] = p & 0xff;
-        p >>= 8;
-        out[0x800 + o++] = p & 0xff;
-        p >>= 8;
+
+    if (exploitSettings.type == ExploitType::MemcardISR) {
+        // Store the payload with correct checksum in the last directory entry (frame 15)
+        putU32Vector(&out[0x780], payload);
+        out[0x7ff] = crc;
+        // Also store the payload with bad checksum in the first broken sector entry (frame 16)
+        putU32Vector(&out[0x800], payload);
+        out[0x87f] = ~crc;
+    } else if (exploitSettings.type == ExploitType::ICacheFlush) {
+        // Store the payload with correct checksum in all broken sector entries (frames 16 to 35 included)
+        for (int i = 16; i < 36; i++) {
+            putU32Vector(&out[i * 0x80], payload);
+            out[i * 0x80 + 0x7f] = crc;
+        }
+    } else {
+        // Store the payload with bad checksum in the first broken sector entry (frame 16)
+        putU32Vector(&out[0x800], payload);
+        out[0x87f] = ~crc;
     }
 
     FILE* outFile = fopen(settings.outputFileName.c_str(), "wb");
