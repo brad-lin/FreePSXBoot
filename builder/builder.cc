@@ -38,6 +38,7 @@ struct ExploitSettings {
     uint32_t loopsPerIncrement = 2;
     uint32_t memCardDirEntryIndex = 0;
     ExploitType type = ExploitType::Standard;
+    int16_t isrBeqDistance = 0;
 
     constexpr static uint32_t maxFileSizeToUse = 0x7fffc000;
 
@@ -85,7 +86,7 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // base of stack array, address to modify, original value, new value,
     // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
     {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
-    {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR}},
+    {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
     {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
     {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
@@ -481,7 +482,7 @@ static void createImage(ImageSettings settings) {
 
     if (settings.exploitSettings.type == ExploitType::MemcardISR) {
         // Workaround for BIOS 1.1: return to ISR unless read is complete (v0 != 0)
-        payload.push_back(beq(Reg::V0, Reg::R0, (int16_t)0x8f34));
+        payload.push_back(beq(Reg::V0, Reg::R0, settings.exploitSettings.isrBeqDistance));
         payload.push_back(nop());
     }
 
