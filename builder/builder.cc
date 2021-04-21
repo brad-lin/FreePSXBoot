@@ -80,6 +80,7 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
     {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3}},
     {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
+    {{30, 19960909}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2}},
     {{30, 19961118}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
     {{30, 19970106}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
     {{41, 19971216}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
@@ -89,8 +90,9 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings {
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
-static std::unordered_map<uint32_t, BIOSKey> modelToBios {
+static std::unordered_map<uint32_t, BIOSKey> modelToBios {    
     {5001, {30, 19961118}},
+    {5500, {30, 19960909}},
     {5501, {30, 19961118}},
     {5502, {30, 19970106}},
     {5503, {30, 19961118}},
