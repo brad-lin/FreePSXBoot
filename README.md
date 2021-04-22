@@ -26,7 +26,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 * Copy the full memory card image corresponding to your model/BIOS to a memory card.
 * Insert it **in slot 1**.
-* **If you have a SCPH-1002 with BIOS version 2.0: insert another memory card in slot 2 (its content doesn't matter)**.
+* **If you have a SCPH-1001 or SCPH-1002 with BIOS version 2.0: insert another memory card in slot 2 (its content doesn't matter)**.
 * Power up your PlayStation with the lid open, and go to the memory card manager.
 * After a few seconds, the screen will be filled with cyan. Wait ~30 seconds for the [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) welcome screen to appear.
 * If the cyan screen doesn't appear, you have either used a wrong memory card image, or the memory card image was not written properly (the mcd file must be written as raw data to the memory card), or something else went wrong. If you are 100% certain that the memory card image was written properly, and that you are using the correct image, please open an issue.
@@ -76,19 +76,19 @@ As more reliable or faster versions of the exploit are developed, the images are
 | 1.0 (1994-09-22)  | SCPH-1000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.0.mcd) |
 | 1.1 (1995-01-22)  | SCPH-3000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.1.mcd) |
 | 2.0 (1995-05-10)  | SCPH-1002 | **Yes; see note below** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.0.mcd) |
-| 2.1 (1995-07-17)  | SCPH-1002<br/>SCPH-3500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.1.mcd) |
-| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.2.mcd) |
+| 2.1 (1995-07-17)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-3500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.1.mcd) |
+| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5003<br/>SCPH-5903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.2.mcd) |
 | 3.0 (1996-09-09)  | SCPH-5500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0.mcd) |
 | 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19961118.mcd) |
 | 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19970106.mcd) |
-| 4.0 (1997-08-18)  | SCPH-7000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.0-1997-08-18.mcd) |
+| 4.0 (1997-08-18)  | SCPH-7000<br/>SCPH-7500<br/>SCPH-9000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.0-1997-08-18.mcd) |
 | 4.1 (1997-11-14)  | SCPH-7000W | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1-1997-11-14.mcd) |
-| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1.mcd) |
+| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003<br/>SCPH-9903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1.mcd) |
 | 4.3 (2000-03-11)  | SCPH-100 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.3.mcd) |
 | 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.4.mcd) |
 | 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102<br/>SCPH-103 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.5.mcd) |
 
-**Note for BIOS 2.0 (SCPH-1002)**: the memory card containing FreePSXBoot must be inserted in slot 1, and **another memory card must be present in slot 2**. The memory card in slot 2 can have any content.
+**Note for BIOS 2.0 (SCPH-1001 or SCPH-1002)**: the memory card containing FreePSXBoot must be inserted in slot 1, and **another memory card must be present in slot 2**. The memory card in slot 2 can have any content.
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 
