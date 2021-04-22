@@ -87,6 +87,7 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
     {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
     {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
+    {{20, 19950507}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
     {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
     {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
@@ -103,19 +104,26 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
 
 // Maps model version (e.g. 9002) to its BIOS version.
 static std::unordered_map<uint32_t, BIOSKey> modelToBios{
+    {1000, {10, 19940922}},
+    // 1001 and 1002 can be either 2.0, 2.1 or 2.2
+    {3000, {11, 19950122}},
+    {3500, {21, 19950717}},
+    {5000, {22, 19951204}},
     {5001, {30, 19961118}},
+    {5003, {22, 19951204}},
     {5500, {30, 19960909}},
     {5501, {30, 19961118}},
     {5502, {30, 19970106}},
     {5503, {30, 19961118}},
     {5552, {30, 19970106}},
+    {5903, {22, 19951204}},
     {7000, {40, 19970818}},
     // 70000 means 7000W
     {70000, {41, 19971114}},
     {7001, {41, 19971216}},
     {7002, {41, 19971216}},
     {7003, {30, 19961118}},
-    {7500, {41, 19971216}},
+    {7500, {40, 19970818}},
     {7501, {41, 19971216}},
     {7502, {41, 19971216}},
     {7503, {41, 19971216}},
@@ -123,8 +131,10 @@ static std::unordered_map<uint32_t, BIOSKey> modelToBios{
     {9001, {41, 19971216}},
     {9002, {41, 19971216}},
     {9003, {41, 19971216}},
-    {101, {45, 20000525}},
-    // 102 can be either 4.4 or 4.5
+    {9903, {41, 19971216}},
+    {100, {43, 20000311}},
+    // 101 and 102 can be either 4.4 or 4.5
+    {103, {45, 20000525}},
 };
 
 // Contains all the settings needed to create a memory card image.
