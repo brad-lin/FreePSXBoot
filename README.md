@@ -81,6 +81,8 @@ As more reliable or faster versions of the exploit are developed, the images are
 | 3.0 (1996-09-09)  | SCPH-5500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0.mcd) |
 | 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19961118.mcd) |
 | 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19970106.mcd) |
+| 4.0 (1997-08-18)  | SCPH-7000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.0-1997-08-18.mcd) |
+| 4.1 (1997-11-14)  | SCPH-7000W | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1-1997-11-14.mcd) |
 | 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7500<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1.mcd) |
 | 4.3 (2000-03-11)  | SCPH-100 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.3.mcd) |
 | 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.4.mcd) |

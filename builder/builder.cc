@@ -93,6 +93,8 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     {{30, 19960909}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2}},
     {{30, 19961118}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
     {{30, 19970106}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+    {{40, 19970818}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{41, 19971114}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
     {{41, 19971216}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
     {{43, 20000311}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
     {{44, 20000324}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
@@ -101,10 +103,26 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
 
 // Maps model version (e.g. 9002) to its BIOS version.
 static std::unordered_map<uint32_t, BIOSKey> modelToBios{
-    {5001, {30, 19961118}}, {5500, {30, 19960909}}, {5501, {30, 19961118}}, {5502, {30, 19970106}},
-    {5503, {30, 19961118}}, {5552, {30, 19970106}}, {7001, {41, 19971216}}, {7002, {41, 19971216}},
-    {7003, {30, 19961118}}, {7500, {41, 19971216}}, {7501, {41, 19971216}}, {7502, {41, 19971216}},
-    {7503, {41, 19971216}}, {9001, {41, 19971216}}, {9002, {41, 19971216}}, {9003, {41, 19971216}},
+    {5001, {30, 19961118}},
+    {5500, {30, 19960909}},
+    {5501, {30, 19961118}},
+    {5502, {30, 19970106}},
+    {5503, {30, 19961118}},
+    {5552, {30, 19970106}},
+    {7000, {40, 19970818}},
+    // 70000 means 7000W
+    {70000, {41, 19971114}},
+    {7001, {41, 19971216}},
+    {7002, {41, 19971216}},
+    {7003, {30, 19961118}},
+    {7500, {41, 19971216}},
+    {7501, {41, 19971216}},
+    {7502, {41, 19971216}},
+    {7503, {41, 19971216}},
+    {9000, {40, 19970818}},
+    {9001, {41, 19971216}},
+    {9002, {41, 19971216}},
+    {9003, {41, 19971216}},
     {101, {45, 20000525}},
     // 102 can be either 4.4 or 4.5
 };
@@ -713,10 +731,9 @@ int main(int argc, char** argv) {
     if (generateAll) {
         for (const auto& it : biosExploitSettings) {
             uint32_t version = it.first.first;
-            std::string suffix = biosVersionToString(it.first.first);
-            if (exploitSettingsToUse.find(suffix) != exploitSettingsToUse.end()) {
-                suffix += '-' + std::to_string(it.first.second);
-            }
+            const std::string& date = std::to_string(it.first.second);
+            std::string suffix = biosVersionToString(version) + '-';
+            suffix += date.substr(0, 4) + '-' + date.substr(4, 2) + '-' + date.substr(6, 2);
             exploitSettingsToUse[std::move(suffix)] = it.second;
         }
     } else {
