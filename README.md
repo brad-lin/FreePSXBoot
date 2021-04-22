@@ -26,7 +26,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 * Copy the full memory card image corresponding to your model/BIOS to a memory card.
 * Insert it **in slot 1**.
-* **If you have a SCPH-1002 with BIOS version 2.0: insert another memory card in slot 2 (its content doesn't matter)**.
+* **If you have a SCPH-1001 or SCPH-1002 with BIOS version 2.0: insert another memory card in slot 2 (its content doesn't matter)**.
 * Power up your PlayStation with the lid open, and go to the memory card manager.
 * After a few seconds, the screen will be filled with cyan. Wait ~30 seconds for the [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) welcome screen to appear.
 * If the cyan screen doesn't appear, you have either used a wrong memory card image, or the memory card image was not written properly (the mcd file must be written as raw data to the memory card), or something else went wrong. If you are 100% certain that the memory card image was written properly, and that you are using the correct image, please open an issue.
@@ -89,7 +89,7 @@ As more reliable or faster versions of the exploit are developed, the images are
 | 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.4.mcd) |
 | 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102<br/>SCPH-103 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.5.mcd) |
 
-**Note for BIOS 2.0 (SCPH-1002)**: the memory card containing FreePSXBoot must be inserted in slot 1, and **another memory card must be present in slot 2**. The memory card in slot 2 can have any content.
+**Note for BIOS 2.0 (SCPH-1001 or SCPH-1002)**: the memory card containing FreePSXBoot must be inserted in slot 1, and **another memory card must be present in slot 2**. The memory card in slot 2 can have any content.
 
 See the folder [builder](builder) for a tool that can be used to generate your own payloads and memory cards.
 
