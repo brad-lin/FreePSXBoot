@@ -180,8 +180,8 @@ static void usage() {
         "-model    the model version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, "
         "old, and new.\n");
     printf(
-        "-bios     the BIOS version, as X.Y (e.g. 4.4). If you use this option, don't use base, vector, old, and "
-        "new.\n");
+        "-bios     the BIOS version, as X.Y (e.g. 4.4), or X.Y-YYYYMMDD if disambiguation is needed. If you use this "
+        "option, don't use base, vector, old, and new.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
         "-vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value "
@@ -643,6 +643,7 @@ int main(int argc, char** argv) {
 
     uint32_t modelVersion = 0;
     uint32_t biosVersion = 0;
+    uint32_t biosDate = 0;
     uint32_t base;
     uint32_t vector;
     uint32_t oldAddr;
@@ -658,6 +659,9 @@ int main(int argc, char** argv) {
             argname = "bios";
             biosVersion = (biosVersionStr->at(0) - '0') * 10;
             biosVersion += biosVersionStr->at(2) - '0';
+            if (biosVersionStr->size() > 4) {
+                biosDate = std::stoul(biosVersionStr->substr(4));
+            }
         } else if (!generateAll) {
             argname = "base";
             base = std::stoul(baseStr.value(), nullptr, 0);
@@ -694,10 +698,11 @@ int main(int argc, char** argv) {
         } else if (biosVersion != 0) {
             bool found = false;
             for (const auto& it : biosExploitSettings) {
-                if (it.first.first == biosVersion) {
+                if (it.first.first == biosVersion && (biosDate == 0 || biosDate == it.first.second)) {
                     exploitSettings = it.second;
                     found = true;
-                    printf("Using exploit settings for BIOS %d\n", biosVersion);
+                    printf("Using exploit settings for BIOS %d.%d-%u\n", biosVersion / 10, biosVersion % 10,
+                           it.first.second);
                     break;
                 }
             }
