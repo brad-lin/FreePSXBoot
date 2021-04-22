@@ -48,6 +48,7 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 ## Changelog
 
+* 2021-04-22: Added support for BIOS 2.0 (1995-05-07), 4.0 and 4.1 (1997-11-14)
 * 2021-04-21: Added support for BIOS 1.1, and fixed BIOS 2.0 exploit (needs icache flush to work)
 * 2021-04-21: Progress bar added in stage2 payload (thanks Nicolas Noble)
 * 2021-04-20: Added support for BIOS 3.0 1996-09-09 (SCPH-5500) (thanks sickle)
