@@ -87,7 +87,7 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
     {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
     {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
-    {{20, 19950507}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
+    {{20, 19950507}, {0x801ffcc0, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 2, 0, ExploitType::ICacheFlush}},
     {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
     {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
     {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
