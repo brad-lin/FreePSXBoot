@@ -9,8 +9,8 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * [Memcarduino](https://github.com/ShendoXT/memcarduino). Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
 * Using [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [NOTPSXserial](https://github.com/JonathanDotCel/NOTPSXSerial) with a serial/USB cable, using the command : `nops /fast /mcup 0 FILE.mcd COMPORT` where `FILE` is the mcd file corresponding to your model, and `COMPORT` corresponds to your computer serial port.
-* Memcarduino with MemcardRex (success not guaranteed)
-* A DexDrive with PSXGameEdit (success not guaranteed)
+* [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/0952399) with a DexDrive, Memcarduino, or PS1CardLink. Make sure to use the latest release, which allows to write raw data to the memory card (required for FreePSXBoot).
+* PSXGameEdit with a DexDrive (success not guaranteed)
 
 
 # WARNING
@@ -35,14 +35,15 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 # Restoring the memory card
 
-* The most reliable way is to use [Memcarduino](https://github.com/ShendoXT/memcarduino) and its FORMAT option.
+* Use [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/0952399).
 * Some games that have a save file manager (shows the contents of the memory card before saving) built into them, like *OddWorld: Abe's Oddysee* and *Cool Boarders 4 (suffers from a caveat that keeps the game from loading the memory card with certain exploit versions)* for example, can be used to overwrite FreePSXBoot when saving progress.
-* Some tools and games crash when attempting to format a memory card loaded with FreePSXBoot, but may be able to format it by first inserting a normal memory card, and switching it with the FreePSXBoot memory card just before the format operation starts.
+* Memory Card Annihilator v2 may be able to format a card, but it has to be inserted at the last moment. This method is not guaranteed to work.
+* In general, tools and games crash when attempting to format a memory card loaded with FreePSXBoot, but may be able to format it by first inserting a normal memory card, and switching it with the FreePSXBoot memory card just before the format operation starts.
 * We plan to bundle a complete version of Unirom in the memory card images in the future, with the ability to format memory cards.
 
 # Supported models
 
-* All models are supported and tested on emulator or real hardware, except the debug models (DTL-H) and Net Yaroze.
+* All models are supported and tested on emulator or real hardware, except the debug models (DTL-H) and Net Yaroze (they may work, but are not tested).
 * As of version 20210419, the exploit is 100% reliable on all supported models. Nevertheless, some exploit images were only tested on emulators and may not work on real hardware; feedback is welcome.
 * See the table below for more details and download links.
 
@@ -76,6 +77,7 @@ As more reliable or faster versions of the exploit are developed, the images are
 |-------------------|--------|------------------------|---------------|
 | 1.0 (1994-09-22)  | SCPH-1000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.0.mcd) |
 | 1.1 (1995-01-22)  | SCPH-3000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.1.mcd) |
+| 2.0 (1995-05-07)  | SCPH-1001 | **Yes; see note below** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.0-1995-05-07.mcd) |
 | 2.0 (1995-05-10)  | SCPH-1002 | **Yes; see note below** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.0.mcd) |
 | 2.1 (1995-07-17)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-3500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.1.mcd) |
 | 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5003<br/>SCPH-5903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.2.mcd) |
