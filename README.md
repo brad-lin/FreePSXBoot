@@ -22,6 +22,13 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 * Once installed, it may become difficult to uninstall, as the normal software to re-format a memory card won't work, due to the exploit itself. You could end up with no means to recover the memory card; if for example your installation method was Memory Card Annihilator v2, then it will also crash. [Memcarduino](https://github.com/ShendoXT/memcarduino), [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1), or using the [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/) would currently be safe bets.
 
+
+# Memory Card Compatibility
+* Any official Sony branded memory card should have FreePSXBoot up and running. 
+* Some third parties, like the generic aftermarket ones, also demonstrate successful functionality of the exploit.
+* Other third parties which use the 7.6v pin rather than the 3.3v pin (this causes the card to not be detectable by PS2 Slim models 75000 and up, unless modified by wire soldering), like the Hip Gear branded cards, may cause the console to freeze in the process of loading the exploit. If you happen to own a third party memory card of this type and shows FreePSXBoot compatibility, let us know to create a list of compatible memory cards.
+
+
 # Usage
 
 * Copy the full memory card image corresponding to your model/BIOS to a memory card.
