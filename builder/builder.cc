@@ -8,6 +8,7 @@
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 #include "flags.h"
@@ -17,6 +18,7 @@
 using namespace Mips::Encoder;
 
 constexpr uint32_t loaderAddr = 0xbe48;
+constexpr size_t frameSize = 0x80;
 
 enum class ExploitType {
     Standard,    // One or more directory entries, which change an instruction. The payload loads and runs stage2.
@@ -76,65 +78,88 @@ struct ExploitSettings {
     }
 };
 
-// A BIOS is identifiend by its version number and date.
-// For example, version 4.1 (1997-12-16).
-// This is used as a key with the format: 41, 19971216.
-typedef std::pair<uint32_t, uint32_t> BIOSKey;
+// A BIOS is identifiend by its version number, date, region ('A' for US/NTSC, 'E' for Europe/PAL, 'I' for
+// Japan/NTSC-J), CRC32
+// For example, version 4.1 (1997-12-16), PAL (Europe), 0x318178bf. This is used as a key with the
+// format: 41, 19971216, 'E', 0x318178bf.
+typedef std::tuple<uint32_t, uint32_t, char, uint32_t> BIOSKey;
 
 static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // Exploit settings in order:
     // base of stack array, address to modify, original value, new value,
     // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
-    {{10, 19940922}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
-    {{11, 19950122}, {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
-    {{20, 19950507}, {0x801ffcc0, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 2, 0, ExploitType::ICacheFlush}},
-    {{20, 19950510}, {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
-    {{21, 19950717}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
-    {{22, 19951204}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
-    {{30, 19960909}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2}},
-    {{30, 19961118}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
-    {{30, 19970106}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
-    {{40, 19970818}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
-    {{41, 19971114}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
-    {{41, 19971216}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
-    {{43, 20000311}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
-    {{44, 20000324}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
-    {{45, 20000525}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{10, 19940922, 'I', 0x3b601fc8}, {0x801ffcb0, 0x80204f04, 0x0c0006c1, 0x0c002f92, true, 3}},
+
+    {{11, 19950122, 'I', 0x3539def6},
+     {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
+
+    {{20, 19950507, 'A', 0x55847d8c},
+     {0x801ffcc0, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 2, 0, ExploitType::ICacheFlush}},
+    {{20, 19950510, 'E', 0x9bb87c4b},
+     {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
+
+    {{21, 19950717, 'A', 0xaff00f2f}, {0x801ffcc8, 0x80204de8, 0x1000003d, 0x10001c17, true}},
+    {{21, 19950717, 'E', 0x86c30531}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
+    {{21, 19950717, 'I', 0xbc190209}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+
+    {{22, 19951204, 'A', 0x37157331}, {0x801ffcc8, 0x80204de8, 0x1000003d, 0x10001c17, true}},
+    {{22, 19951204, 'E', 0x1e26792f}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
+    {{22, 19951204, 'I', 0x24fc7e17}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+
+    {{30, 19960909, 'I', 0xff3eeb8c}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+    {{30, 19961118, 'A', 0x8d8cb7e4}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{30, 19970106, 'E', 0xd786f0b9}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true}},
+
+    {{40, 19970818, 'I', 0xec541cd0}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+
+    {{41, 19971114, 'A', 0xb7c43dad}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
+    // BIOS 4.1-19971216 A and E are exactly the same, except 1 character
+    {{41, 19971216, 'A', 0x502224b6}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
+    {{41, 19971216, 'E', 0x318178bf}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002f92, true, 3}},
+
+    {{43, 20000311, 'I', 0xf2af798b}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+
+    // BIOS 4.4 A and E are exactly the same, except 1 character
+    {{44, 20000324, 'A', 0x6a0e22a0}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{44, 20000324, 'E', 0x0bad7ea9}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+
+    // BIOS 4.5 A and E are exactly the same, except 1 character
+    {{45, 20000525, 'A', 0x171bdcec}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+    {{45, 20000525, 'E', 0x76b880e5}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
 static std::unordered_map<uint32_t, BIOSKey> modelToBios{
-    {1000, {10, 19940922}},
+    {1000, {10, 19940922, 'I', 0x3b601fc8}},
     // 1001 and 1002 can be either 2.0, 2.1 or 2.2
-    {3000, {11, 19950122}},
-    {3500, {21, 19950717}},
-    {5000, {22, 19951204}},
-    {5001, {30, 19961118}},
-    {5003, {22, 19951204}},
-    {5500, {30, 19960909}},
-    {5501, {30, 19961118}},
-    {5502, {30, 19970106}},
-    {5503, {30, 19961118}},
-    {5552, {30, 19970106}},
-    {5903, {22, 19951204}},
-    {7000, {40, 19970818}},
+    {3000, {11, 19950122, 'I', 0x3539def6}},
+    {3500, {21, 19950717, 'I', 0xbc190209}},
+    {5000, {22, 19951204, 'I', 0x24fc7e17}},
+    {5001, {30, 19961118, 'A', 0x8d8cb7e4}},
+    {5003, {22, 19951204, 'A', 0x37157331}},
+    {5500, {30, 19960909, 'I', 0xff3eeb8c}},
+    {5501, {30, 19961118, 'A', 0x8d8cb7e4}},
+    {5502, {30, 19970106, 'E', 0xd786f0b9}},
+    {5503, {30, 19961118, 'A', 0x8d8cb7e4}},
+    {5552, {30, 19970106, 'E', 0xd786f0b9}},
+    {7000, {40, 19970818, 'I', 0xec541cd0}},
     // 70000 means 7000W
-    {70000, {41, 19971114}},
-    {7001, {41, 19971216}},
-    {7002, {41, 19971216}},
-    {7003, {30, 19961118}},
-    {7500, {40, 19970818}},
-    {7501, {41, 19971216}},
-    {7502, {41, 19971216}},
-    {7503, {41, 19971216}},
-    {9000, {40, 19970818}},
-    {9001, {41, 19971216}},
-    {9002, {41, 19971216}},
-    {9003, {41, 19971216}},
-    {9903, {41, 19971216}},
-    {100, {43, 20000311}},
+    {70000, {41, 19971114, 'A', 0xb7c43dad}},
+    {7001, {41, 19971216, 'A', 0x502224b6}},
+    {7002, {41, 19971216, 'E', 0x318178bf}},
+    {7003, {30, 19961118, 'A', 0x8d8cb7e4}},
+    {7500, {40, 19970818, 'I', 0xec541cd0}},
+    {7501, {41, 19971216, 'A', 0x502224b6}},
+    {7502, {41, 19971216, 'E', 0x318178bf}},
+    {7503, {41, 19971216, 'A', 0x502224b6}},
+    {9000, {40, 19970818, 'I', 0xec541cd0}},
+    {9001, {41, 19971216, 'A', 0x502224b6}},
+    {9002, {41, 19971216, 'E', 0x318178bf}},
+    {9003, {41, 19971216, 'A', 0x502224b6}},
+    {9903, {41, 19971216, 'A', 0x502224b6}},
+    {100, {43, 20000311, 'I', 0xf2af798b}},
     // 101 and 102 can be either 4.4 or 4.5
-    {103, {45, 20000525}},
+    {103, {45, 20000525, 'A', 0x171bdcec}},
 };
 
 // Contains all the settings needed to create a memory card image.
@@ -180,8 +205,8 @@ static void usage() {
         "-model    the model version, as 3 or 4 digits (e.g. 9002). If you use this option, don't use base, vector, "
         "old, and new.\n");
     printf(
-        "-bios     the BIOS version, as X.Y (e.g. 4.4), or X.Y-YYYYMMDD if disambiguation is needed. If you use this "
-        "option, don't use base, vector, old, and new.\n");
+        "-bios     the BIOS version, as X.Y (e.g. 4.4), or X.Y-YYYYMMDD or X.Y-YYYYMMDD-R (with R being A, E, or I) if "
+        "disambiguation is needed. If you use this option, don't use base, vector, old, and new.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
         "-vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value "
@@ -253,7 +278,7 @@ static void createImage(ImageSettings settings) {
     if (returnToShell && exploitSettings.inIsr) {
         throw std::runtime_error("Payload wants to return to shell, but exploit is in ISR");
     }
-    static std::array<uint8_t, 128 * 1024> out;
+    static std::array<uint8_t, frameSize * 1024> out;
     memset(out.data(), 0, out.size());
     out[0x0000] = 'M';
     out[0x0001] = 'C';
@@ -262,7 +287,7 @@ static void createImage(ImageSettings settings) {
     // Write directory entries (as many as needed)
     const int startIndex = exploitSettings.memCardDirEntryIndex;
     for (int i = startIndex; i < startIndex + exploitSettings.nbSlotsNeeded(); i++) {
-        const int offset = (i + 1) * 0x80;
+        const int offset = (i + 1) * frameSize;
         const bool last = i == startIndex + exploitSettings.nbSlotsNeeded() - 1;
         uint32_t fileSize = last ? exploitSettings.fileSizeToUseForLastSlot() : ExploitSettings::maxFileSizeToUse;
         // Note: exploit will fail if the value at the fake directory entry is 0xAX or 0x5X, depending of this value.
@@ -294,7 +319,7 @@ static void createImage(ImageSettings settings) {
         out[offset + 0x14] = 't';
 
         uint8_t crc = 0;
-        for (unsigned i = 0; i < 0x80; i++) {
+        for (unsigned i = 0; i < frameSize; i++) {
             crc ^= out[offset + i];
         }
         out[offset + 0x7f] = crc;
@@ -359,19 +384,21 @@ static void createImage(ImageSettings settings) {
     }
 
     constexpr unsigned firstUsableFrame = 64;
+    // First stage 2 frame is a dummy frame.
+    constexpr unsigned firstRealFrame = firstUsableFrame + 1;
     const bool backwards = settings.backwards;
 
     if (stage3_sp == 0) stage3_sp = 0x801ffff0;
     unsigned stage2_frames = (stage2_tsize + 127) >> 7;
     unsigned stage3_frames = (stage3_tsize + 127) >> 7;
-    constexpr unsigned availableFrames = ((128 * 1024) >> 7) - firstUsableFrame;
+    constexpr unsigned availableFrames = ((frameSize * 1024) >> 7) - firstRealFrame;
     if (settings.fastload) {
         if ((stage2_frames + stage3_frames + 1) > availableFrames) {
-            throw std::runtime_error("Payload binary too big. Maximum = " + std::to_string(availableFrames * 128) +
-                                     " bytes");
+            throw std::runtime_error(
+                "Payload binary too big. Maximum = " + std::to_string(availableFrames * frameSize) + " bytes");
         }
-        memcpy(out.data() + firstUsableFrame * 128, stage2, stage2_tsize);
-        uint8_t* configPtr = out.data() + (firstUsableFrame + stage2_frames) * 128;
+        memcpy(out.data() + firstRealFrame * frameSize, stage2, stage2_tsize);
+        uint8_t* configPtr = out.data() + (firstRealFrame + stage2_frames) * frameSize;
         putU32(configPtr, stage3_pc);
         configPtr += 4;
         putU32(configPtr, stage3_gp);
@@ -383,13 +410,13 @@ static void createImage(ImageSettings settings) {
         putU32(configPtr, stage3_frames);
         configPtr += 4;
         memcpy(configPtr, "FREEPSXBOOT FASTLOAD PAYLOAD", 28);
-        memcpy(out.data() + (firstUsableFrame + stage2_frames + 1) * 128, payloadPtr, stage3_tsize);
+        memcpy(out.data() + (firstRealFrame + stage2_frames + 1) * frameSize, payloadPtr, stage3_tsize);
     } else {
         if (stage2_frames > availableFrames) {
-            throw std::runtime_error("Payload binary too big. Maximum = " + std::to_string(availableFrames * 128) +
-                                     " bytes");
+            throw std::runtime_error(
+                "Payload binary too big. Maximum = " + std::to_string(availableFrames * frameSize) + " bytes");
         }
-        memcpy(out.data() + firstUsableFrame * 128, payloadPtr, stage2_tsize);
+        memcpy(out.data() + firstRealFrame * frameSize, payloadPtr, stage2_tsize);
     }
 
     std::vector<uint32_t> disableInterrupts = {
@@ -414,7 +441,7 @@ static void createImage(ImageSettings settings) {
         addiu(Reg::T1, Reg::R0, 0x44),
     };
 
-    unsigned lastLoadAddress = stage2_tload + 128 * (stage2_frames - 1);
+    unsigned lastLoadAddress = stage2_tload + frameSize * (stage2_frames - 1);
     std::vector<uint32_t> loadBinary;
     if (backwards) {
         loadBinary = {
@@ -428,8 +455,8 @@ static void createImage(ImageSettings settings) {
             addi(Reg::GP, Reg::GP, -1),
             // A0 = deviceID (0)
             addiu(Reg::A0, Reg::R0, 0),
-            // A1 = frame counter + firstUsableFrame
-            addiu(Reg::A1, Reg::GP, firstUsableFrame),
+            // A1 = frame counter + firstRealFrame
+            addiu(Reg::A1, Reg::GP, firstRealFrame),
             // A2 = current destination address pointer
             addiu(Reg::A2, Reg::K1, 0),
             // mcReadSector(0, frame, dest)
@@ -448,9 +475,9 @@ static void createImage(ImageSettings settings) {
         loadBinary = {
             // GP = first frame
             addiu(Reg::GP, Reg::R0, firstUsableFrame),
-            // K1 = destination address of first frame
-            lui(Reg::K1, getHI(stage2_tload)),
-            addiu(Reg::K1, Reg::K1, getLO(stage2_tload)),
+            // K1 = destination address of first frame. Take into account the dummy frame.
+            lui(Reg::K1, getHI(stage2_tload - frameSize)),
+            addiu(Reg::K1, Reg::K1, getLO(stage2_tload - frameSize)),
             // read_loop:
             // A0 = deviceID (0)
             addiu(Reg::A0, Reg::R0, 0),
@@ -468,7 +495,7 @@ static void createImage(ImageSettings settings) {
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x5d),
             // if frame counter is not last frame, go back 44 bytes (aka read_loop)
-            addiu(Reg::AT, Reg::R0, firstUsableFrame + stage2_frames),
+            addiu(Reg::AT, Reg::R0, firstRealFrame + stage2_frames),
             bne(Reg::GP, Reg::AT, -44),
             // increment destination pointer by sizeof(frame) in the delay slot
             addiu(Reg::K1, Reg::K1, 128),
@@ -568,11 +595,11 @@ static void createImage(ImageSettings settings) {
         crcIndex++;
     }
     // If exploit type is not standard, the checksum must be controllable
-    if (payloadSize == 128 && exploitSettings.type != ExploitType::Standard) {
+    if (payloadSize == frameSize && exploitSettings.type != ExploitType::Standard) {
         throw std::runtime_error("Payload is 128 bytes but its checksum must be controllable.");
     }
     // If payload has 128 bytes, check that the checksum is bad
-    if (payloadSize == 128 && crc == payloadBytes[127]) {
+    if (payloadSize == frameSize && crc == payloadBytes[127]) {
         throw std::runtime_error("Payload is 128 bytes and its checksum is not bad.");
     }
 
@@ -586,8 +613,8 @@ static void createImage(ImageSettings settings) {
     } else if (exploitSettings.type == ExploitType::ICacheFlush) {
         // Store the payload with correct checksum in all broken sector entries (frames 16 to 35 included)
         for (int i = 16; i < 36; i++) {
-            putU32Vector(&out[i * 0x80], payload);
-            out[i * 0x80 + 0x7f] = crc;
+            putU32Vector(&out[i * frameSize], payload);
+            out[i * frameSize + 0x7f] = crc;
         }
     } else {
         // Store the payload with bad checksum in the first broken sector entry (frame 16)
@@ -644,6 +671,7 @@ int main(int argc, char** argv) {
     uint32_t modelVersion = 0;
     uint32_t biosVersion = 0;
     uint32_t biosDate = 0;
+    char biosRegion = 0;
     uint32_t base;
     uint32_t vector;
     uint32_t oldAddr;
@@ -656,11 +684,18 @@ int main(int argc, char** argv) {
             argname = "model";
             modelVersion = std::stoul(modelVersionStr.value(), nullptr, 0);
         } else if (biosVersionStr.has_value()) {
+            // Accepted BIOS version formats:
+            // 2.2
+            // 2.2-19951204
+            // 2.2-19951204-A
             argname = "bios";
             biosVersion = (biosVersionStr->at(0) - '0') * 10;
             biosVersion += biosVersionStr->at(2) - '0';
             if (biosVersionStr->size() > 4) {
                 biosDate = std::stoul(biosVersionStr->substr(4));
+            }
+            if (biosVersionStr->size() >= 14) {
+                biosRegion = biosVersionStr->at(13);
             }
         } else if (!generateAll) {
             argname = "base";
@@ -698,19 +733,21 @@ int main(int argc, char** argv) {
         } else if (biosVersion != 0) {
             bool found = false;
             for (const auto& it : biosExploitSettings) {
-                if (it.first.first == biosVersion && (biosDate == 0 || biosDate == it.first.second)) {
+                auto [version, date, region, crc] = it.first;
+                if (biosVersion == version && (biosDate == 0 || biosDate == date) &&
+                    (biosRegion == 0 || biosRegion == region)) {
                     exploitSettings = it.second;
                     found = true;
-                    printf("Using exploit settings for BIOS %d.%d-%u\n", biosVersion / 10, biosVersion % 10,
-                           it.first.second);
+                    printf("Using exploit settings for BIOS %s-%u-%c (CRC32: %08x)\n",
+                           biosVersionToString(version).c_str(), date, region, crc);
                     break;
                 }
             }
             if (!found) {
                 printf("Unsupported BIOS %s. Supported BIOS are:\n", biosVersionToString(biosVersion).c_str());
                 for (const auto& it : biosExploitSettings) {
-                    const auto& curVersion = it.first.first;
-                    printf("%s ", biosVersionToString(curVersion).c_str());
+                    auto [version, date, region, crc] = it.first;
+                    printf("%s-%u-%c (CRC32: %08x)\n", biosVersionToString(version).c_str(), date, region, crc);
                 }
                 printf("\n");
                 return -1;
@@ -745,11 +782,15 @@ int main(int argc, char** argv) {
     std::map<std::string, ExploitSettings> exploitSettingsToUse;
     if (generateAll) {
         for (const auto& it : biosExploitSettings) {
-            uint32_t version = it.first.first;
-            const std::string& date = std::to_string(it.first.second);
-            std::string suffix = biosVersionToString(version) + '-';
-            suffix += date.substr(0, 4) + '-' + date.substr(4, 2) + '-' + date.substr(6, 2);
-            exploitSettingsToUse[std::move(suffix)] = it.second;
+            auto [version, date, region, crc] = it.first;
+            std::ostringstream biosId;
+            biosId << biosVersionToString(version) << '-';
+            // Add date as YYYY-MM-DD
+            const std::string& dateStr = std::to_string(date);
+            biosId << dateStr.substr(0, 4) << '-' << dateStr.substr(4, 2) << '-' << dateStr.substr(6, 2) << "-";
+            // Add region and CRC32
+            biosId << region << '-' << std::hex << crc;
+            exploitSettingsToUse[biosId.str()] = it.second;
         }
     } else {
         exploitSettingsToUse[std::string()] = exploitSettings;
