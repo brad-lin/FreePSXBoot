@@ -272,6 +272,12 @@ static std::string biosVersionToString(uint32_t version) {
     return std::to_string(version / 10) + "." + std::to_string(version % 10);
 }
 
+static std::string toHexString(uint32_t number) {
+    char result[9];
+    snprintf(result, sizeof(result), "%08x", number);
+    return std::string(result);
+}
+
 static void createImage(ImageSettings settings) {
     const ExploitSettings& exploitSettings = settings.exploitSettings;
     const bool returnToShell = settings.returnToShell;
@@ -789,7 +795,7 @@ int main(int argc, char** argv) {
             const std::string& dateStr = std::to_string(date);
             biosId << dateStr.substr(0, 4) << '-' << dateStr.substr(4, 2) << '-' << dateStr.substr(6, 2) << "-";
             // Add region and CRC32
-            biosId << region << '-' << std::hex << crc;
+            biosId << region << '-' << toHexString(crc);
             exploitSettingsToUse[biosId.str()] = it.second;
         }
     } else {

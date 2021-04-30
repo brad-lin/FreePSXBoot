@@ -81,23 +81,30 @@ There are different downloads for different BIOS versions. Please download the c
 
 As more reliable or faster versions of the exploit are developed, the images are updated. Older versions can be found in the `images` directory.
 
-| BIOS version/date | Models | 100% reliable exploit? | Download Link |
-|-------------------|--------|------------------------|---------------|
-| 1.0 (1994-09-22)  | SCPH-1000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.0.mcd) |
-| 1.1 (1995-01-22)  | SCPH-3000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-1.1.mcd) |
-| 2.0 (1995-05-07)  | SCPH-1001 | **Yes; see note below** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.0-1995-05-07.mcd) |
-| 2.0 (1995-05-10)  | SCPH-1002 | **Yes; see note below** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.0.mcd) |
-| 2.1 (1995-07-17)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-3500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.1.mcd) |
-| 2.2 (1995-12-04)  | SCPH-1001<br/>SCPH-1002<br/>SCPH-5000<br/>SCPH-5003<br/>SCPH-5903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-2.2.mcd) |
-| 3.0 (1996-09-09)  | SCPH-5500 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0.mcd) |
-| 3.0 (1996-11-18)  | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19961118.mcd) |
-| 3.0 (1997-01-06)  | SCPH-5502<br/>SCPH-5552 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-3.0-19970106.mcd) |
-| 4.0 (1997-08-18)  | SCPH-7000<br/>SCPH-7500<br/>SCPH-9000 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.0-1997-08-18.mcd) |
-| 4.1 (1997-11-14)  | SCPH-7000W | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1-1997-11-14.mcd) |
-| 4.1 (1997-12-16)  | SCPH-7001<br/>SCPH-7002<br/>SCPH-7501<br/>SCPH-7502<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9002<br/>SCPH-9003<br/>SCPH-9903 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.1.mcd) |
-| 4.3 (2000-03-11)  | SCPH-100 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.3.mcd) |
-| 4.4 (2000-03-24)  | SCPH-101<br/>SCPH-102 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.4.mcd) |
-| 4.5 (2000-05-25)  | SCPH-101<br/>SCPH-102<br/>SCPH-103 | **Yes** | [20210421](images/freepsxboot-unirom-fastload-20210421-bios-4.5.mcd) |
+| BIOS version/region | BIOS CRC32 | Models | 100% reliable exploit? | Download Link |
+|---------------------|------------|--------|------------------------|---------------|
+| 1.0 (1994-09-22) I | 3b601fc8 | SCPH-1000 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-1.0-1994-09-22-I-3b601fc8.mcd) |
+| 1.1 (1995-01-22) I | 3539def6 | SCPH-3000 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-1.1-1995-01-22-I-3539def6.mcd) |
+| 2.0 (1995-05-07) A | 55847d8c | SCPH-1001 | **Yes; see note below** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.0-1995-05-07-A-55847d8c.mcd) |
+| 2.0 (1995-05-10) E | 9bb87c4b | SCPH-1002 | **Yes; see note below** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.0-1995-05-10-E-9bb87c4b.mcd) |
+| 2.1 (1995-07-17) A | aff00f2f | SCPH-1001 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.1-1995-07-17-A-aff00f2f.mcd) |
+| 2.1 (1995-07-17) E | 86c30531 | SCPH-1002 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.1-1995-07-17-E-86c30531.mcd) |
+| 2.1 (1995-07-17) I | bc190209 | SCPH-3500 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.1-1995-07-17-I-bc190209.mcd) |
+| 2.2 (1995-12-04) A | 37157331 | SCPH-1001<br/>SCPH-5003 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.2-1995-12-04-A-37157331.mcd) |
+| 2.2 (1995-12-04) E | 1e26792f | SCPH-1002 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.2-1995-12-04-E-1e26792f.mcd) |
+| 2.2 (1995-12-04) I | 24fc7e17 | SCPH-5000 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-2.2-1995-12-04-I-24fc7e17.mcd) |
+| 3.0 (1996-09-09) I | ff3eeb8c | SCPH-5500 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-3.0-1996-09-09-I-ff3eeb8c.mcd) |
+| 3.0 (1996-11-18) A | 8d8cb7e4 | SCPH-5001<br/>SCPH-5501<br/>SCPH-5503<br/>SCPH-7003 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-3.0-1996-11-18-A-8d8cb7e4.mcd) |
+| 3.0 (1997-01-06) E | d786f0b9 | SCPH-5502<br/>SCPH-5552 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-3.0-1997-01-06-E-d786f0b9.mcd) |
+| 4.0 (1997-08-18) I | ec541cd0 | SCPH-7000<br/>SCPH-7500<br/>SCPH-9000 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.0-1997-08-18-I-ec541cd0.mcd) |
+| 4.1 (1997-11-14) A | b7c43dad | SCPH-7000W | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.1-1997-11-14-A-b7c43dad.mcd) |
+| 4.1 (1997-12-16) A | 502224b6 | SCPH-7001<br/>SCPH-7501<br/>SCPH-7503<br/>SCPH-9001<br/>SCPH-9003<br/>SCPH-9903 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.1-1997-12-16-A-502224b6.mcd) |
+| 4.1 (1997-12-16) E | 318178bf | SCPH-7002<br/>SCPH-7502<br/>SCPH-9002 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.1-1997-12-16-E-318178bf.mcd) |
+| 4.3 (2000-03-11) I | f2af798b | SCPH-100 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.3-2000-03-11-I-f2af798b.mcd) |
+| 4.4 (2000-03-24) A | 6a0e22a0 | SCPH-101 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.4-2000-03-24-A-6a0e22a0.mcd) |
+| 4.4 (2000-03-24) E | 0bad7ea9 | SCPH-102 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.4-2000-03-24-E-0bad7ea9.mcd) |
+| 4.5 (2000-05-25) A | 171bdcec | SCPH-101<br/>SCPH-103 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.5-2000-05-25-A-171bdcec.mcd) |
+| 4.5 (2000-05-25) E | 76b880e5 | SCPH-102 | **Yes** | [20210430](images/freepsxboot-unirom-fastload-20210430-bios-4.5-2000-05-25-E-76b880e5.mcd) |
 
 **Note for BIOS 2.0 (SCPH-1001 or SCPH-1002)**: the memory card containing FreePSXBoot must be inserted in slot 1, and **another memory card must be present in slot 2**. The memory card in slot 2 can have any content.
 
