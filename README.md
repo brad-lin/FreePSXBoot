@@ -9,7 +9,8 @@ To use it, you will need a way to copy **full memory card images** (not individu
 * [Memcarduino](https://github.com/ShendoXT/memcarduino). Requires soldering wires to the memory card.
 * Using a [Memcard Pro](https://8bitmods.com/memcard-pro-for-playstation-1/), which lets you create your own virtual memory cards on an sdcard. Simply drop the card image file you want to use as Memory Card 1, Channel 1.
 * Using [Unirom](https://github.com/JonathanDotCel/unirom8_bootdisc_and_firmware_for_ps1) and [NOTPSXserial](https://github.com/JonathanDotCel/NOTPSXSerial) with a serial/USB cable, using the command : `nops /fast /mcup 0 FILE.mcd COMPORT` where `FILE` is the mcd file corresponding to your model, and `COMPORT` corresponds to your computer serial port.
-* [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/0952399) with a DexDrive, Memcarduino, or PS1CardLink. Make sure to use the latest release, which allows to write raw data to the memory card (required for FreePSXBoot).
+* [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/2b7a018) with a DexDrive, Memcarduino, PS3 Memory Card Adaptor (CECHZM1), or PS1CardLink. Make sure to use the latest release, which allows to write raw data to the memory card (required for FreePSXBoot).
+* [ps3mca-ps1](https://github.com/paolo-caroni/ps3mca-ps1) with PS3 Memory Card Adaptor (CECHZM1).
 * PSXGameEdit with a DexDrive (success not guaranteed)
 
 
@@ -35,7 +36,8 @@ To use it, you will need a way to copy **full memory card images** (not individu
 
 # Restoring the memory card
 
-* Use [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/0952399).
+* Use [MemcardRex](https://github.com/ShendoXT/memcardrex/releases/tag/2b7a018).
+* Use [ps3mca-ps1](https://github.com/paolo-caroni/ps3mca-ps1) with PS3 Memory Card Adaptor (CECHZM1).
 * Some games that have a save file manager (shows the contents of the memory card before saving) built into them, like *OddWorld: Abe's Oddysee* and *Cool Boarders 4 (suffers from a caveat that keeps the game from loading the memory card with certain exploit versions)* for example, can be used to overwrite FreePSXBoot when saving progress.
 * Memory Card Annihilator v2 may be able to format a card, but it has to be inserted at the last moment. This method is not guaranteed to work.
 * In general, tools and games crash when attempting to format a memory card loaded with FreePSXBoot, but may be able to format it by first inserting a normal memory card, and switching it with the FreePSXBoot memory card just before the format operation starts.
