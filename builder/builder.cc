@@ -12,12 +12,16 @@
 #include <vector>
 
 #include "flags.h"
-#include "stage2-bin.h"
+#include "stage2-slot1-bin.h"
+#include "stage2-slot2-bin.h"
 #include "stage2/common/util/encoder.hh"
+
+#include <iostream>
 
 using namespace Mips::Encoder;
 
-constexpr uint32_t loaderAddr = 0xbe48;
+constexpr uint32_t loaderAddrSlot1 = 0xbe48;
+constexpr uint32_t loaderAddrSlot2 = 0xbec8;
 constexpr size_t frameSize = 0x80;
 
 enum class ExploitType {
@@ -84,7 +88,7 @@ struct ExploitSettings {
 // format: 41, 19971216, 'E', 0x318178bf.
 typedef std::tuple<uint32_t, uint32_t, char, uint32_t> BIOSKey;
 
-static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
+static std::map<BIOSKey, ExploitSettings> slot1ExploitSettings{
     // Exploit settings in order:
     // base of stack array, address to modify, original value, new value,
     // calls payload from ISR, number of loops per increment, index of directory entry, exploit type.
@@ -126,6 +130,12 @@ static std::map<BIOSKey, ExploitSettings> biosExploitSettings{
     // BIOS 4.5 A and E are exactly the same, except 1 character
     {{45, 20000525, 'A', 0x171bdcec}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
     {{45, 20000525, 'E', 0x76b880e5}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 3}},
+};
+
+static std::map<BIOSKey, ExploitSettings> slot2ExploitSettings{
+    // BIOS 4.1-19971216 A and E are exactly the same, except 1 character
+    {{41, 19971216, 'A', 0x502224b6}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+    {{41, 19971216, 'E', 0x318178bf}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
@@ -175,6 +185,7 @@ struct ImageSettings {
     bool noGP;
     bool backwards;
     bool useDeletedEntries;
+    bool slot2;
 };
 
 static void banner() {
@@ -207,6 +218,10 @@ static void usage() {
     printf(
         "-bios     the BIOS version, as X.Y (e.g. 4.4), or X.Y-YYYYMMDD or X.Y-YYYYMMDD-R (with R being A, E, or I) if "
         "disambiguation is needed. If you use this option, don't use base, vector, old, and new.\n");
+    printf(
+        "-slot     the slot where the memory card will be inserted (1 or 2). If slot is 1, the memory card must be "
+        "removed after the exploit is triggered. If slot is 2, the exploit disables the memory card in slot 2, and it "
+        "can be left there. Some BIOSes only have a slot 1 exploit.");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
         "-vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value "
@@ -370,11 +385,12 @@ static void createImage(ImageSettings settings) {
     uint32_t stage2_tload = settings.stage3_tload;
     uint32_t stage2_pc = stage3_pc;
     uint32_t stage2_tsize = stage3_tsize;
+    const auto& stage2 = settings.slot2 ? stage2_slot2 : stage2_slot1;
 
     if (settings.fastload) {
-        stage2_tload = 0x801a0000;
-        stage2_pc = 0x801a0000;
-        stage2_tsize = sizeof(stage2);
+        stage2_tload = 0x8000d000;
+        stage2_pc = 0x8000d000;
+        stage2_tsize = settings.slot2 ? sizeof(stage2_slot2) : sizeof(stage2_slot1);
 
         uint32_t stage2_end = stage2_tload + stage2_tsize;
         uint32_t stage3_end = settings.stage3_tload + stage3_tsize;
@@ -449,6 +465,8 @@ static void createImage(ImageSettings settings) {
 
     unsigned lastLoadAddress = stage2_tload + frameSize * (stage2_frames - 1);
     std::vector<uint32_t> loadBinary;
+    const uint32_t mcSlot = settings.slot2 ? 1 : 0;
+    const uint32_t mcDeviceId = mcSlot * 0x10;
     if (backwards) {
         loadBinary = {
             // S0 = current frame
@@ -459,17 +477,17 @@ static void createImage(ImageSettings settings) {
             // read_loop:
             // decrement frame counter
             addi(Reg::GP, Reg::GP, -1),
-            // A0 = deviceID (0)
-            addiu(Reg::A0, Reg::R0, 0),
+            // A0 = deviceID (0 or 0x10)
+            addiu(Reg::A0, Reg::R0, mcDeviceId),
             // A1 = frame counter + firstRealFrame
             addiu(Reg::A1, Reg::GP, firstRealFrame),
             // A2 = current destination address pointer
             addiu(Reg::A2, Reg::K1, 0),
-            // mcReadSector(0, frame, dest)
+            // mcReadSector(0 or 0x10, frame, dest)
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x4f),
-            // mcWaitForStatus(0);
-            addiu(Reg::A0, Reg::R0, 0),
+            // mcWaitForStatus(0 or 1);
+            addiu(Reg::A0, Reg::R0, mcSlot),
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x5d),
             // if frame counter is not zero, go back 40 bytes (aka read_loop)
@@ -485,19 +503,19 @@ static void createImage(ImageSettings settings) {
             lui(Reg::K1, getHI(stage2_tload - frameSize)),
             addiu(Reg::K1, Reg::K1, getLO(stage2_tload - frameSize)),
             // read_loop:
-            // A0 = deviceID (0)
-            addiu(Reg::A0, Reg::R0, 0),
+            // A0 = deviceID (0 or 0x10)
+            addiu(Reg::A0, Reg::R0, mcDeviceId),
             // A1 = frame counter
             addiu(Reg::A1, Reg::GP, 0),
             // increment frame counter
             addi(Reg::GP, Reg::GP, 1),
             // A2 = current destination address pointer
             addiu(Reg::A2, Reg::K1, 0),
-            // mcReadSector(0, frame, dest)
+            // mcReadSector(0 or 0x10, frame, dest)
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x4f),
-            // mcWaitForStatus(0);
-            addiu(Reg::A0, Reg::R0, 0),
+            // mcWaitForStatus(0 or 1);
+            addiu(Reg::A0, Reg::R0, mcSlot),
             jal(0xb0),
             addiu(Reg::T1, Reg::R0, 0x5d),
             // if frame counter is not last frame, go back 44 bytes (aka read_loop)
@@ -569,6 +587,7 @@ static void createImage(ImageSettings settings) {
     }
 
     // Add screen flashing, if remaining size allows, and fastload not enabled
+    const uint32_t loaderAddr = settings.slot2 ? loaderAddrSlot2 : loaderAddrSlot1;
     std::vector<uint32_t> flashScreen = {
         // GP is always 0xa0010ff0. Use this to save an instruction.
         addiu(Reg::A0, Reg::GP, static_cast<uint16_t>((loaderAddr + 16 + payload.size() * 4)) - 0x10ff0),
@@ -644,6 +663,7 @@ int main(int argc, char** argv) {
 
     auto modelVersionStr = args.get<std::string>("model");
     auto biosVersionStr = args.get<std::string>("bios");
+    auto slot2Exploit = args.get<int>("slot", 1) == 2;
     auto baseStr = args.get<std::string>("base");
     auto vectorStr = args.get<std::string>("vector");
     auto oldAddrStr = args.get<std::string>("old");
@@ -683,6 +703,8 @@ int main(int argc, char** argv) {
     uint32_t oldAddr;
     uint32_t newAddr;
     uint32_t stage3_tload = 0;
+
+    const auto& biosExploitSettings = slot2Exploit ? slot2ExploitSettings : slot1ExploitSettings;
 
     const char* argname = nullptr;
     try {
@@ -784,6 +806,7 @@ int main(int argc, char** argv) {
     imageSettings.noGP = args.get<bool>("nogp", false);
     imageSettings.backwards = args.get<bool>("bw", false);
     imageSettings.useDeletedEntries = args.get<bool>("deleted", false);
+    imageSettings.slot2 = slot2Exploit;
 
     std::map<std::string, ExploitSettings> exploitSettingsToUse;
     if (generateAll) {
@@ -819,7 +842,7 @@ int main(int argc, char** argv) {
                 }
             }
             createImage(imageSettings);
-            printf("Created %s\n", imageSettings.outputFileName.c_str());
+            printf("Created %s for slot %d\n", imageSettings.outputFileName.c_str(), slot2Exploit ? 2 : 1);
             imageSettings.outputFileName = outName.value();
         } catch (const std::exception& ex) {
             printf("Failed to create memory card image: %s\n", ex.what());

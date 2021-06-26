@@ -69,7 +69,11 @@ int mcReadStepper(uint32_t frame, uint8_t* buffer, int step) {
 
     switch (step) {
         case 1:
+#ifdef FPSXB_SLOT2
+            SIOS[0].ctrl = 0x3003;
+#else
             SIOS[0].ctrl = 0x1003;
+#endif
             o = 0x81;
             break;
         case 2:
@@ -175,15 +179,7 @@ union Header {
     uint8_t buffer[128];
 };
 
-static inline __attribute__((noreturn)) void jump(union Header* header) {
-    register int a0 asm("a0") = 0;
-    register int a1 asm("a1") = 0;
-    register int a2 asm("a2") = 0xf12ee175;
-    register int a3 asm("a3") = 0xec55b007;
-    __asm__ volatile("lw $ra, 0(%0)\nlw $gp, 4(%0)\nlw $sp, 8(%0)\nli $t1, 0x44\nj 0xa0\n"
-                     :
-                     : "r"(header), "r"(a0), "r"(a1), "r"(a2), "r"(a3));
-}
+extern __attribute__((noreturn)) void reboothook(const union Header* header);
 
 __attribute__((noreturn)) void main() {
     // disable all interrupts
@@ -248,7 +244,7 @@ __attribute__((noreturn)) void main() {
             }
             mcReadFrame(frame, tload);
             tload += 128;
-            if (stage3Frames == totalStage3Frames) jump(&header);
+            if (stage3Frames == totalStage3Frames) reboothook(&header);
         } else {
             mcReadFrame(frame, header.buffer);
             hexdump(header.buffer, 128);

@@ -30,7 +30,8 @@ EXTERN(_start)
 ENTRY(_start)
 
 MEMORY {
-    ram (rwx)   : ORIGIN = 0x801a0000, LENGTH = 2M - 0x1a0000
+    ram (rwx)   : ORIGIN = 0x8000d000, LENGTH = 0xff0 /* This is in the kernel memory region, but never actually used by the kernel. */
+                                                      /* Keep 16 bytes to store the entry point, sp, and gp of the loaded program. */
     dcache      : ORIGIN = 0x1f800000, LENGTH = 0x400
 }
 
