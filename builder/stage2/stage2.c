@@ -36,7 +36,7 @@ static void hexdump_impl(const void* data_, unsigned size) {
     }
 }
 
-#define WIDTH 512
+#define WIDTH 320 // if changed, hResolution must be changed as well
 #define HEIGHT 240
 
 static void fill(const union Color bg, int16_t width) {
@@ -196,7 +196,7 @@ __attribute__((noreturn)) void main() {
     const int isPAL = (*((char*)0xbfc7ff52) == 'E');
     GPU_STATUS = 0x00000000;  // reset GPU
     struct DisplayModeConfig config = {
-        .hResolution = HR_320,
+        .hResolution = HR_320, // if changed, WIDTH must be changed as well
         .vResolution = VR_240,
         .videoMode = isPAL ? VM_PAL : VM_NTSC,
         .colorDepth = CD_15BITS,
@@ -236,11 +236,16 @@ __attribute__((noreturn)) void main() {
     uint32_t stage3Frames = 0;
     uint32_t totalStage3Frames = 0;
     uint8_t* tload = NULL;
+    int32_t lastFillWidth = 0;
     for (uint32_t frame = 64; frame < 1024; frame++) {
         printf("Reading frame %i, got header = %i\n", frame, gotHeader);
         if (gotHeader) {
             stage3Frames++;
-            fill(c_fgSuccess, 512 * stage3Frames / totalStage3Frames);
+            int32_t fillWidth = WIDTH * stage3Frames / totalStage3Frames;
+            if (fillWidth != lastFillWidth) {
+                lastFillWidth = fillWidth;
+                fill(c_fgSuccess, fillWidth);
+            }
             mcReadFrame(frame, tload);
             tload += 128;
             if (stage3Frames == totalStage3Frames) jump(&header);
