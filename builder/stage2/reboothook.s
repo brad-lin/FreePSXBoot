@@ -108,22 +108,43 @@ cophandler:
 	# We do this by adding $a3 (which contains slot number) to the received value from the memcard.
 	# If the slot is 0, the received value (0x5a) is unchanged and the memcard is seen as present.
 	# If the slot is 1, the value is changed to 0x5b, and the kernel reports "no card present".
-	la $t0, 0x583c
-	li $t1, 0x8c18725c # lw $t8, interrupt_registers_base
+
+	# There are 2 kernel versions, called here KERNEL1 and KERNEL2.
+	# KERNEL1 is in BIOSes up to version 2.0 included.
+	# KERNEL2 is in BIOSes from versoin 2.1 up.
+	# The code of the patched functions is the same between the 2 kernel versions; only their locations change,
+	# as well as the address of interrupt_registers_base.
+
+.ifdef PSX_KERNEL1
+	.equ lw_t0_interrupt_registers_base, 0x8c08724c
+	.equ read_card_sector_callback_patch_addr, 0x57cc
+	.equ write_card_sector_callback_patch_addr, 0x5330
+	.equ get_card_info_callback_patch_addr, 0x5ce0
+.else
+	.equ lw_t0_interrupt_registers_base, 0x8c08725c
+	.equ read_card_sector_callback_patch_addr, 0x583c
+	.equ write_card_sector_callback_patch_addr, 0x53a0
+	.equ get_card_info_callback_patch_addr, 0x5d50
+.endif
+
+	.equ lw_t8_interrupt_registers_base, (lw_t0_interrupt_registers_base | 0x00100000)
+
+	la $t0, read_card_sector_callback_patch_addr
+	li $t1, lw_t8_interrupt_registers_base
 	sw $t1, 0($t0)
 	li $t1, 0x00872021 # addu $a0, $a3; a0 is the byte read from MC, a3 is 0 if slot 1 or 1 if slot 2.
 	sw $t1, 0x1c($t0)
 
 	# Patch write_card_sector_callback in the same way.
-	la $t0, 0x53a0
-	li $t1, 0x8c18725c # lw $t8, interrupt_registers_base
+	la $t0, write_card_sector_callback_patch_addr
+	li $t1, lw_t8_interrupt_registers_base
 	sw $t1, 0($t0)
 	li $t1, 0x00661821 # addu $v1, $a2; v1 is the byte read from MC, a2 is 0 if slot 1 or 1 if slot 2.
 	sw $t1, 0x1c($t0)
 
 	# Patch get_card_info_callback in the same way.
-	la $t0, 0x5d50 # initially lui $t0, 0
-	li $t1, 0x8c08725c # lw $t0, interrupt_registers_base
+	la $t0, get_card_info_callback_patch_addr
+	li $t1, lw_t0_interrupt_registers_base
 	sw $t1, 0($t0)
 	li $t1, 0x00641821 # addu $v1, $a0; v1 is the byte read from MC, a0 is 0 if slot 1 or 1 if slot 2.
 	sw $t1, 0x1c($t0)
@@ -134,7 +155,12 @@ cophandler:
 	la $t0, 0xbe48
 	li $t1, 0xf12ee175
 	sw $t1, 0($t0)
-	li $t1, 0xec55b007
+	# Let it know from which slot it was loaded
+.ifdef FPSXB_SLOT2
+	li $t1, 0xec5b0072
+.else
+	li $t1, 0xec5b0071
+.endif
 	sw $t1, 4($t0)
 
 	# Load the exe and jump to it

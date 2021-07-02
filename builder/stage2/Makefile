@@ -15,4 +15,9 @@ CFLAGS += -DFPSXB_SLOT2
 ASFLAGS += -Wa,--defsym,FPSXB_SLOT2=1
 endif
 
+ifdef PSX_KERNEL1
+CFLAGS += -DPSX_KERNEL1
+ASFLAGS += -Wa,--defsym,PSX_KERNEL1=1
+endif
+
 include common.mk

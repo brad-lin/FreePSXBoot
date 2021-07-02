@@ -13,7 +13,8 @@
 
 #include "flags.h"
 #include "stage2-slot1-bin.h"
-#include "stage2-slot2-bin.h"
+#include "stage2-slot2-kernel1-bin.h"
+#include "stage2-slot2-kernel2-bin.h"
 #include "stage2/common/util/encoder.hh"
 
 #include <iostream>
@@ -45,6 +46,7 @@ struct ExploitSettings {
     uint32_t memCardDirEntryIndex = 0;
     ExploitType type = ExploitType::Standard;
     int16_t isrBeqDistance = 0;
+    uint32_t kernelVersion; // 1 or 2; version 1 is used in BIOSes up to 2.0 included.
 
     constexpr static uint32_t maxFileSizeToUse = 0x7fffc000;
 
@@ -133,9 +135,46 @@ static std::map<BIOSKey, ExploitSettings> slot1ExploitSettings{
 };
 
 static std::map<BIOSKey, ExploitSettings> slot2ExploitSettings{
+    {{10, 19940922, 'I', 0x3b601fc8},
+     {0x801ffcb0, 0x80204d80, 0x10400007, 0x10421c51, true, 4, 0, ExploitType::MemcardISR, -0x712c}},
+
+    {{11, 19950122, 'I', 0x3539def6},
+     {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c56, true, 3, 0, ExploitType::MemcardISR, -0x712c}},
+
+    {{20, 19950507, 'A', 0x55847d8c}, {0x801ffcc0, 0x80204e94, 0x0c000501, 0x0c002fb2, true, 2, 5}},
+    {{20, 19950510, 'E', 0x9bb87c4b}, {0x801ffcb8, 0x80204f04, 0x0c0006c1, 0x0c002fb2, true, 3, 0}},
+
+    {{21, 19950717, 'A', 0xaff00f2f}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002fb2, true}},
+    {{21, 19950717, 'E', 0x86c30531}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002fb2, true}},
+    {{21, 19950717, 'I', 0xbc190209},
+     {0x801ffcc8, 0x80204ddc, 0x10000004, 0x10001c3a, true, 2, 13, ExploitType::MemcardISR, -0x70dc}},
+
+    {{22, 19951204, 'A', 0x37157331}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002fb2, true}},
+    {{22, 19951204, 'E', 0x1e26792f}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002fb2, true}},
+    {{22, 19951204, 'I', 0x24fc7e17},
+     {0x801ffcc8, 0x80204ddc, 0x10000004, 0x10001c3a, true, 2, 13, ExploitType::MemcardISR, -0x70dc}},
+
+    {{30, 19960909, 'I', 0xff3eeb8c},
+     {0x801ffcc8, 0x80204ddc, 0x10000004, 0x10001c3a, true, 2, 13, ExploitType::MemcardISR, -0x70dc}},
+    {{30, 19961118, 'A', 0x8d8cb7e4}, {0x801ffcc8, 0x80204f64, 0x0c001acc, 0x0c002fb2, true}},
+    {{30, 19970106, 'E', 0xd786f0b9}, {0x801ffcc0, 0x80204f04, 0x0c000511, 0x0c002fb2, true, 2, 3}},
+
+    {{40, 19970818, 'I', 0xec541cd0}, {0x801ffcc8, 0x80204f04, 0x0c000511, 0x0c002fb2, true}},
+
+    {{41, 19971114, 'A', 0xb7c43dad}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
     // BIOS 4.1-19971216 A and E are exactly the same, except 1 character
     {{41, 19971216, 'A', 0x502224b6}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
     {{41, 19971216, 'E', 0x318178bf}, {0x801ffcd0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+
+    {{43, 20000311, 'I', 0xf2af798b}, {0x801ffcc0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+
+    // BIOS 4.4 A and E are exactly the same, except 1 character
+    {{44, 20000324, 'A', 0x6a0e22a0}, {0x801ffcc0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+    {{44, 20000324, 'E', 0x0bad7ea9}, {0x801ffcc0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+
+    // BIOS 4.5 A and E are exactly the same, except 1 character
+    {{45, 20000525, 'A', 0x171bdcec}, {0x801ffcc0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
+    {{45, 20000525, 'E', 0x76b880e5}, {0x801ffcc0, 0x80204f74, 0x0c0006d1, 0x0c002fb2, true}},
 };
 
 // Maps model version (e.g. 9002) to its BIOS version.
@@ -293,7 +332,7 @@ static std::string toHexString(uint32_t number) {
     return std::string(result);
 }
 
-static void createImage(ImageSettings settings) {
+static void createImage(ImageSettings settings, const uint8_t* stage2, uint32_t stage2_size) {
     const ExploitSettings& exploitSettings = settings.exploitSettings;
     const bool returnToShell = settings.returnToShell;
     if (returnToShell && exploitSettings.inIsr) {
@@ -385,12 +424,11 @@ static void createImage(ImageSettings settings) {
     uint32_t stage2_tload = settings.stage3_tload;
     uint32_t stage2_pc = stage3_pc;
     uint32_t stage2_tsize = stage3_tsize;
-    const auto& stage2 = settings.slot2 ? stage2_slot2 : stage2_slot1;
 
     if (settings.fastload) {
         stage2_tload = 0x8000d000;
         stage2_pc = 0x8000d000;
-        stage2_tsize = settings.slot2 ? sizeof(stage2_slot2) : sizeof(stage2_slot1);
+        stage2_tsize = stage2_size;
 
         uint32_t stage2_end = stage2_tload + stage2_tsize;
         uint32_t stage3_end = settings.stage3_tload + stage3_tsize;
@@ -704,7 +742,13 @@ int main(int argc, char** argv) {
     uint32_t newAddr;
     uint32_t stage3_tload = 0;
 
-    const auto& biosExploitSettings = slot2Exploit ? slot2ExploitSettings : slot1ExploitSettings;
+    auto& biosExploitSettings = slot2Exploit ? slot2ExploitSettings : slot1ExploitSettings;
+
+    // Set kernel version according to BIOS version.
+    for (auto& it : biosExploitSettings) {
+        const BIOSKey& biosKey = it.first;
+        it.second.kernelVersion = (std::get<0>(biosKey) <= 20) ? 1 : 2;
+    }
 
     const char* argname = nullptr;
     try {
@@ -841,7 +885,22 @@ int main(int argc, char** argv) {
                     imageSettings.outputFileName += "-" + currentExploitSettings.first;
                 }
             }
-            createImage(imageSettings);
+            // Choose the right stage2 payload
+            const uint8_t* stage2;
+            uint32_t stage2_size;
+            if (imageSettings.slot2) {
+                if (imageSettings.exploitSettings.kernelVersion == 1) {
+                    stage2 = stage2_slot2_kernel1;
+                    stage2_size = sizeof(stage2_slot2_kernel1);
+                } else {
+                    stage2 = stage2_slot2_kernel2;
+                    stage2_size = sizeof(stage2_slot2_kernel2);
+                }
+            } else {
+                stage2 = stage2_slot1;
+                stage2_size = sizeof(stage2_slot1);
+            }
+            createImage(imageSettings, stage2, stage2_size);
             printf("Created %s for slot %d\n", imageSettings.outputFileName.c_str(), slot2Exploit ? 2 : 1);
             imageSettings.outputFileName = outName.value();
         } catch (const std::exception& ex) {
