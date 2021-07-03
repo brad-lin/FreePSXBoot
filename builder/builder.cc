@@ -12,7 +12,8 @@
 #include <vector>
 
 #include "flags.h"
-#include "stage2-slot1-bin.h"
+#include "stage2-slot1-kernel1-bin.h"
+#include "stage2-slot1-kernel2-bin.h"
 #include "stage2-slot2-kernel1-bin.h"
 #include "stage2-slot2-kernel2-bin.h"
 #include "stage2/common/util/encoder.hh"
@@ -897,8 +898,13 @@ int main(int argc, char** argv) {
                     stage2_size = sizeof(stage2_slot2_kernel2);
                 }
             } else {
-                stage2 = stage2_slot1;
-                stage2_size = sizeof(stage2_slot1);
+                if (imageSettings.exploitSettings.kernelVersion == 1) {
+                    stage2 = stage2_slot1_kernel1;
+                    stage2_size = sizeof(stage2_slot1_kernel1);
+                } else {
+                    stage2 = stage2_slot1_kernel2;
+                    stage2_size = sizeof(stage2_slot1_kernel2);
+                }
             }
             createImage(imageSettings, stage2, stage2_size);
             printf("Created %s for slot %d\n", imageSettings.outputFileName.c_str(), slot2Exploit ? 2 : 1);
