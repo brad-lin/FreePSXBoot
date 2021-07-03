@@ -60,7 +60,7 @@ endif
 	$(CC) -g -o $(BINDIR)$(TARGET).elf $(OBJS) $(LDFLAGS)
 
 %.o: %.s
-	$(CC) $(ARCHFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
+	$(CC) $(ARCHFLAGS) $(ASFLAGS) -I$(ROOTDIR) -g -c -o $@ $<
 
 %.dep: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -M -MT $(addsuffix .o, $(basename $@)) -MF $@ $<
