@@ -71,7 +71,11 @@ reboothook:
 	sw $t4, 0xC($t5)
 
 	# Reboot
+.ifdef PSX_KERNEL1
+	la $t0, 0xbfc00398
+.else
 	la $t0, 0xbfc003a8
+.endif
 	jalr $t0
 	nop
 
