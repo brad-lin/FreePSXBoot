@@ -3,6 +3,8 @@ Exploit to allow loading arbitrary code on the PSX (i.e. PlayStation 1) using on
 
 In other words, it's a softmod which requires a memory card, and a way to write raw data to it.
 
+For support or discussion about this exploit and associated tools, you may join the PSXDev Network Discord server: [![Discord](https://img.shields.io/discord/642647820683444236)](https://discord.gg/QByKPpH)
+
 To use it, you will need a way to copy **full memory card images** (not individual files) to a memory card. Some possibilities are:
 
 * A PS2 and the software Memory Card Annihilator v2 (use "Restore MC image")
