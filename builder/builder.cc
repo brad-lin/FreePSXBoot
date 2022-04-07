@@ -261,7 +261,7 @@ static void usage() {
     printf(
         "-slot     the slot where the memory card will be inserted (1 or 2). If slot is 1, the memory card must be "
         "removed after the exploit is triggered. If slot is 2, the exploit disables the memory card in slot 2, and it "
-        "can be left there. Some BIOSes only have a slot 1 exploit.");
+        "can be left there.\n");
     printf("-base     the base address of the stack array being exploited from buInit\n");
     printf(
         "-vector   the address of the value we want to modify. Use 0x802 as a prefix, e.g. 0x802009b4 to modify value "
@@ -667,12 +667,13 @@ static void createImage(ImageSettings settings, const uint8_t* stage2, uint32_t 
         throw std::runtime_error("Payload is 128 bytes and its checksum is not bad.");
     }
 
+    constexpr std::size_t payloadOffset = frameSize * 16;
     if (exploitSettings.type == ExploitType::MemcardISR) {
         // Store the payload with correct checksum in the last directory entry (frame 15)
-        putU32Vector(&out[0x780], payload);
+        putU32Vector(&out[payloadOffset - frameSize], payload);
         out[0x7ff] = crc;
         // Also store the payload with bad checksum in the first broken sector entry (frame 16)
-        putU32Vector(&out[0x800], payload);
+        putU32Vector(&out[payloadOffset], payload);
         out[0x87f] = ~crc;
     } else if (exploitSettings.type == ExploitType::ICacheFlush) {
         // Store the payload with correct checksum in all broken sector entries (frames 16 to 35 included)
@@ -682,8 +683,16 @@ static void createImage(ImageSettings settings, const uint8_t* stage2, uint32_t 
         }
     } else {
         // Store the payload with bad checksum in the first broken sector entry (frame 16)
-        putU32Vector(&out[0x800], payload);
+        putU32Vector(&out[payloadOffset], payload);
         out[0x87f] = ~crc;
+    }
+
+    // If total size is less than 64 kB, duplicate the content to the next 64 kB.
+    // This cheap fix makes it possible to use fake memory cards with a 512 kbits (64 kB) chip.
+    if (payloadOffset + payload.size() <= out.size() / 2) {
+        std::memcpy(out.data() + out.size() / 2, out.data(), out.size() / 2);
+    } else {
+        printf("Note: payload size is more than half the card size.\n");
     }
 
     FILE* outFile = fopen(settings.outputFileName.c_str(), "wb");
@@ -697,7 +706,6 @@ static void createImage(ImageSettings settings, const uint8_t* stage2, uint32_t 
 
 int main(int argc, char** argv) {
     banner();
-
     const flags::args args(argc, argv);
 
     auto modelVersionStr = args.get<std::string>("model");
