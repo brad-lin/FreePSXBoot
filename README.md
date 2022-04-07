@@ -68,6 +68,7 @@ If you are using a Memcard Pro, or need to use the two memory card slots normall
 
 ## Changelog
 
+* 2022-03-18: New kernel patch for slot 2; should fix games which can't handle wrong memory card handshake
 * 2021-10-04: Unirom version updated to 8.0.J
 * 2021-07-03: FreePSXBoot patches the kernel when run from slot 2 (memory card can remain inserted)
 * 2021-07-03: Exploit updated to work on slot 2

@@ -105,53 +105,117 @@ cophandler:
 
 	# Only patch memcard callbacks for slot 2 exploit
 .ifdef FPSXB_SLOT2
-
-	# Patch read_card_sector_callback to make it fail at step 4 (card ID).
-	# The original code loads the address of the interrupts register using 2 instructions, but this can be reduced to one.
-	# The saved instruction can be overwritten with another one that makes the card ID invalid unless it's in slot 0.
-	# We do this by adding $a3 (which contains slot number) to the received value from the memcard.
-	# If the slot is 0, the received value (0x5a) is unchanged and the memcard is seen as present.
-	# If the slot is 1, the value is changed to 0x5b, and the kernel reports "no card present".
+	b apply_patches # Delay slot executes an instruction without consequences here (li $at, 1 at patch_1_start)
 
 	# There are 2 kernel versions, called here KERNEL1 and KERNEL2.
 	# KERNEL1 is in BIOSes up to version 2.0 included.
-	# KERNEL2 is in BIOSes from versoin 2.1 up.
+	# KERNEL2 is in BIOSes from version 2.1 up.
 	# The code of the patched functions is the same between the 2 kernel versions; only their locations change,
 	# as well as the address of interrupt_registers_base.
 
 .ifdef PSX_KERNEL1
-	.equ lw_t0_interrupt_registers_base, 0x8c08724c
-	.equ read_card_sector_callback_patch_addr, 0x57cc
-	.equ write_card_sector_callback_patch_addr, 0x5330
-	.equ get_card_info_callback_patch_addr, 0x5ce0
+	.equ patch_start_addr, 0x4d70
+	.equ mem_card_slot_info, 0x7490
+	.equ card_io_register_base, 0x7248
+	.equ mc_got_error, 0x7510
 .else
-	.equ lw_t0_interrupt_registers_base, 0x8c08725c
-	.equ read_card_sector_callback_patch_addr, 0x583c
-	.equ write_card_sector_callback_patch_addr, 0x53a0
-	.equ get_card_info_callback_patch_addr, 0x5d50
+	.equ patch_start_addr, 0x4de0
+	.equ mem_card_slot_info, 0x74a0
+	.equ card_io_register_base, 0x7258
+	.equ mc_got_error, 0x7520
 .endif
 
-	.equ lw_t8_interrupt_registers_base, (lw_t0_interrupt_registers_base | 0x00100000)
+	# Some addresses needed by the patch
+	.equ patch_2_start_addr, patch_start_addr + 0x10
+	.equ patch_3_start_addr, patch_start_addr + 0x140
+	.equ patch_4_start_addr, patch_start_addr + 0x14c
 
-	la $t0, read_card_sector_callback_patch_addr
-	li $t1, lw_t8_interrupt_registers_base
-	sw $t1, 0($t0)
-	li $t1, 0x00872021 # addu $a0, $a3; a0 is the byte read from MC, a3 is 0 if slot 1 or 1 if slot 2.
-	sw $t1, 0x1c($t0)
+	.equ callback_returned_1_offset, -0xc
+	.equ callback_returned_minus_1_offset, 0x3c
+	.equ callback_returned_0_offset, 0x10
+	.equ disable_memcard_interrupt_offset, 0x104
+	.equ interrupt_handler_epilogue_offset, 0x50
 
-	# Patch write_card_sector_callback in the same way.
-	la $t0, write_card_sector_callback_patch_addr
-	li $t1, lw_t8_interrupt_registers_base
-	sw $t1, 0($t0)
-	li $t1, 0x00661821 # addu $v1, $a2; v1 is the byte read from MC, a2 is 0 if slot 1 or 1 if slot 2.
-	sw $t1, 0x1c($t0)
+	# Some games don't like to receive the 0x8000 (bad card) event when checking for memory cards, and hang.
+	# To ensure better compatibility, make it look like a timeout instead. To achieve this, we let the ISR callback do its
+	# first operation and return 0. A memcard interrupt is now expected. We prevent it from being processed by
+	# redirecting the code flow to disable the memcard interrupt, which will eventually result in a timeout.
+	# This is exactly what would happen if no memory card was inserted, and should be handled correctly by all games.
 
-	# Patch get_card_info_callback in the same way.
-	la $t0, get_card_info_callback_patch_addr
-	li $t1, lw_t0_interrupt_registers_base
-	sw $t1, 0($t0)
-	li $t1, 0x00641821 # addu $v1, $a0; v1 is the byte read from MC, a0 is 0 if slot 1 or 1 if slot 2.
-	sw $t1, 0x1c($t0)
+	# The memory card interrupt handler is patched in place (which is possible as the original code has a few useless instructions)
+	# as follows (addresses below match KERNEL2):
+
+patch_1_start:
+	# 0x4de0
+	li $at, 1 # use delay slot to prepare callback result check
+patch_1_end:
+
+patch_2_start:
+	# 0x4df0
+1: # Using labels to allow having immediate offsets in branches
+	beq $v0, $at, 1b + callback_returned_1_offset # If callback returned 1, follow the usual path
+	# 0x4df4
+	lw $t1, mem_card_slot_info($zero) # Load word at 0x74a0. It contains 0 if current memcard slot is 1, and 0x2000 if slot is 2.
+	# 0x4df8
+1:
+	bne $v0, $zero, 1b + callback_returned_minus_1_offset # If callback returned a non zero value, follow the usual path
+	# 0x4dfc
+	lw $v1, card_io_register_base($zero) # Load in $v1 the address of the card I/O base register
+	# 0x4e00
+1:
+	beq $t1, $zero, 1b + callback_returned_0_offset # If current slot is slot 1, follow the usual path
+	# 0x4e04
+	nop
+	# 0x4e08
+1:
+	b 1b + disable_memcard_interrupt_offset # Else (slot is 2), jump in the middle of the function, where memcard interrupts are disabled
+	# 0x4e0c
+	sh $zero, 0xa($v1) # Disable card transfer
+patch_2_end:
+
+patch_3_start:
+	# 0x4f20
+	lw $t5, mc_got_error($zero) # This saves an instruction  at 0x4f2c, allowing to replace it with the jump below
+patch_3_end:
+
+patch_4_start:
+	# 0x4f2c
+1:
+	bne $t1, $zero, 1b + interrupt_handler_epilogue_offset # If slot is 2, exit from the function, now that interrupts are disabled
+patch_4_end:
+
+copy_patch:
+	lw $t3, 0($t1)
+	addiu $t1, $t1, 4
+	sw $t3, 0($t0)
+	bne $t1, $t2, copy_patch
+	addiu $t0, $t0, 4
+	jr $ra
+
+apply_patches:
+	# Patch 1
+	la $t0, patch_start_addr
+	la $t1, patch_1_start
+	jal copy_patch
+	addiu $t2, $t1, patch_1_end - patch_1_start
+
+	# Patch 2
+	la $t1, patch_2_start
+	la $t0, patch_2_start_addr
+	jal copy_patch
+	addiu $t2, $t1, patch_2_end - patch_2_start
+
+	# Patch 3
+	la $t1, patch_3_start
+	la $t0, patch_3_start_addr
+	jal copy_patch
+	addiu $t2, $t1, patch_3_end - patch_3_start
+
+	# Patch 4
+	la $t1, patch_4_start
+	la $t0, patch_4_start_addr
+	jal copy_patch
+	addiu $t2, $t1, patch_4_end - patch_4_start
 
 .endif
 
