@@ -690,7 +690,7 @@ static void createImage(ImageSettings settings, const uint8_t* stage2, uint32_t 
     // If total size is less than 64 kB, duplicate the content to the next 64 kB.
     // This cheap fix makes it possible to use fake memory cards with a 512 kbits (64 kB) chip.
     if (payloadOffset + payload.size() <= out.size() / 2) {
-        std::memcpy(out.data() + out.size() / 2, out.data(), out.size() / 2);
+        memcpy(out.data() + out.size() / 2, out.data(), out.size() / 2);
     } else {
         printf("Note: payload size is more than half the card size.\n");
     }
