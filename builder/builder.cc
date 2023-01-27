@@ -101,9 +101,9 @@ static std::map<BIOSKey, ExploitSettings> slot1ExploitSettings{
      {0x801ffcc0, 0x80204d6c, 0x10000004, 0x10001c36, true, 3, 0, ExploitType::MemcardISR, -0x70cc}},
 
     {{20, 19950507, 'A', 0x55847d8c},
-     {0x801ffcc0, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 2, 0, ExploitType::ICacheFlush}},
+     {0x801ffcc0, 0x80206a38, 0x24090025, 0x24091cd0, false, 3, 0}},
     {{20, 19950510, 'E', 0x9bb87c4b},
-     {0x801ffcb8, 0x80204ef4, 0x0c001ab0, 0x0c002f92, true, 3, 0, ExploitType::ICacheFlush}},
+     {0x801ffcb8, 0x80206aa8, 0x24090017, 0x24091cd0, false, 3, 0}},
 
     {{21, 19950717, 'A', 0xaff00f2f}, {0x801ffcc8, 0x80204de8, 0x1000003d, 0x10001c17, true}},
     {{21, 19950717, 'E', 0x86c30531}, {0x801ffcc0, 0x80204f64, 0x0c001acc, 0x0c002f92, true, 2, 8}},
