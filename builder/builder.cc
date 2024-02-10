@@ -19,6 +19,7 @@
 #include "stage2/common/util/encoder.hh"
 
 #include <iostream>
+#include <cstring>
 
 using namespace Mips::Encoder;
 
